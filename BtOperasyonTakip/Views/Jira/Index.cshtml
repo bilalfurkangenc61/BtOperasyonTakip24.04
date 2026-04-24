@@ -1,0 +1,205 @@
+﻿@model BtOperasyonTakip.Models.JiraBoardViewModel
+@{
+    ViewData["Title"] = "🧩 Jira Kanban Görünüm";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<style>
+    body {
+        background: #f4f6fb;
+        font-family: 'Poppins',sans-serif;
+    }
+
+    .kanban-wrapper {
+        display: flex;
+        gap: 16px;
+        padding: 12px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        height: calc(100vh - 210px);
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+
+        .kanban-wrapper::-webkit-scrollbar {
+            height: 10px
+        }
+
+        .kanban-wrapper::-webkit-scrollbar-thumb {
+            background: #007bff55;
+            border-radius: 6px
+        }
+
+    .kanban-col {
+        flex: 0 0 380px;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.08);
+        max-height: 100%;
+    }
+
+    .kanban-header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #fff;
+        padding: .8rem 1rem;
+        font-weight: 600;
+        border-bottom: 1px solid #eee;
+    }
+
+    .sortable-area {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 12px
+    }
+
+        .sortable-area::-webkit-scrollbar {
+            width: 8px
+        }
+
+        .sortable-area::-webkit-scrollbar-thumb {
+            background: #9eb9ff66;
+            border-radius: 5px
+        }
+
+    .kanban-card {
+        background: #f8faff;
+        border-left: 5px solid #0d6efd;
+        border-radius: 10px;
+        padding: .8rem;
+        margin-bottom: 10px;
+        cursor: grab;
+        transition: .2s;
+        position: relative;
+    }
+
+        .kanban-card:hover {
+            transform: translateY(-2px);
+            background: #eef5ff
+        }
+
+    .delete-btn {
+        position: absolute;
+        top: 6px;
+        right: 10px;
+        color: #dc3545;
+        cursor: pointer
+    }
+
+    .drag-shadow {
+        opacity: .7
+    }
+
+    .dragging {
+        cursor: grabbing !important;
+        transform: scale(1.02)
+    }
+
+    .card-detail {
+        border-left: 3px solid #0d6efd;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        margin: -2px 0 10px 0;
+        padding: .75rem .9rem;
+        animation: fadeIn .15s ease;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: .5;
+            transform: translateY(-4px)
+        }
+
+        to {
+            opacity: 1;
+            transform: none
+        }
+    }
+</style>
+
+<div class="container-fluid mt-3">
+    @if (TempData["JiraOk"] != null)
+    {
+        <div class="alert alert-success">@TempData["JiraOk"]</div>
+    }
+    @if (TempData["JiraError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["JiraError"]</div>
+    }
+
+    <h3 class="text-primary mb-3">🧾 Jira Tarzı İş Takip Sistemi</h3>
+
+    <form asp-action="Create" method="post" class="row g-3 bg-light p-3 rounded shadow-sm mb-3">
+        @Html.AntiForgeryToken()
+        <div class="col-md-2"><input name="JiraId" class="form-control" placeholder="JIRA-101" required /></div>
+        <div class="col-md-3"><input name="TalepKonusu" class="form-control" placeholder="Talep Konusu" required /></div>
+        <div class="col-md-2"><input name="TalepAcan" class="form-control" placeholder="Talep Açan" required /></div>
+        <div class="col-md-2">
+            <select name="Durum" class="form-select">
+                <option>Beklemede</option>
+                <option>Aktif</option>
+                <option>Tamamlandı</option>
+            </select>
+        </div>
+        <div class="col-md-2"><button class="btn btn-success w-100">💾 Ekle</button></div>
+    </form>
+
+    <div class="kanban-wrapper" id="board">
+        @foreach (var durum in new[] { "Beklemede", "Aktif", "Tamamlandı" })
+        {
+            var list = durum switch
+            {
+                "Beklemede" => Model.Beklemede,
+                "Aktif" => Model.Aktif,
+                "Tamamlandı" => Model.Tamamlandi,
+                _ => new List<BtOperasyonTakip.Models.JiraTask>()
+            };
+            <div class="kanban-col" data-durum="@durum">
+                <div class="kanban-header @(durum == "Beklemede" ? "text-warning" : durum == "Aktif" ? "text-success" : "text-secondary")">
+                    @(durum == "Beklemede" ? "📋 Beklemede" : durum == "Aktif" ? "🚀 Aktif" : "✅ Tamamlandı")
+                </div>
+                <div class="sortable-area" data-durum="@durum">
+                    @foreach (var t in list)
+                    {
+                        <div class="kanban-card" data-id="@t.Id">
+                            <form method="post" action="@Url.Action("DeleteForm", "Jira")" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@t.Id" />
+                                <input type="hidden" name="returnUrl" value="@Context.Request.Path?selectedTaskId=@t.Id" />
+                                <button type="submit" class="delete-btn bg-transparent border-0" title="Sil" onclick="return confirm('Bu taskı silmek istediğinizden emin misiniz?');">✖</button>
+                            </form>
+                            <strong>@t.JiraId</strong> — @t.TalepKonusu<br />
+                            <small>👤 @t.TalepAcan | 🕓 @t.OlusturmaTarihi.ToString("dd.MM.yyyy")</small>
+                            <form method="post" action="@Url.Action("UpdateDurumForm", "Jira")" class="mt-2">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@t.Id" />
+                                <input type="hidden" name="returnUrl" value="@Context.Request.Path?selectedTaskId=@t.Id" />
+                                <select name="yeniDurum" class="form-select form-select-sm" onchange="this.form.submit()">
+                                    <option value="Beklemede" selected="@(string.Equals(t.Durum, "Beklemede", StringComparison.OrdinalIgnoreCase))">Beklemede</option>
+                                    <option value="Aktif" selected="@(string.Equals(t.Durum, "Aktif", StringComparison.OrdinalIgnoreCase))">Aktif</option>
+                                    <option value="Tamamlandı" selected="@(string.Equals(t.Durum, "Tamamlandı", StringComparison.OrdinalIgnoreCase))">Tamamlandı</option>
+                                </select>
+                            </form>
+                            <a class="btn btn-sm btn-outline-secondary mt-2" href="@Url.Action("Index", "Jira", new { selectedTaskId = t.Id })">Detay</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model.SelectedTask != null)
+    {
+        <div class="mt-4">
+            @await Html.PartialAsync("_JiraDetailCard", Model.SelectedTask)
+        </div>
+    }
+</div>

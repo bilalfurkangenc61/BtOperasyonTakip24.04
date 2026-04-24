@@ -1,0 +1,80 @@
+﻿@model List<BtOperasyonTakip.Models.Hata>
+@{
+    ViewData["Title"] = "Saha - Hata Listesi";
+}
+<div class="container mt-4">
+    <h2>Saha Hataları</h2>
+
+    <div class="d-flex justify-content-end flex-wrap mb-3 gap-2">
+        <a href="/Hatalar/SahaYeni" class="btn btn-primary">➕ Yeni Hata</a>
+    </div>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-4">
+            <input type="text" name="q" value="@ViewBag.Q" class="form-control" placeholder="Ara..." />
+        </div>
+        <div class="col-md-3">
+            <select name="durum" class="form-control">
+                <option value="">Tüm Durumlar</option>
+                <option value="Açık" selected="@(ViewBag.Durum == "Açık")">Açık</option>
+                <option value="Kapalı" selected="@(ViewBag.Durum == "Kapalı")">Kapalı</option>
+                <option value="Beklemede" selected="@(ViewBag.Durum == "Beklemede")">Beklemede</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="kategori" class="form-control">
+                <option value="">Tüm Kategoriler</option>
+                <option value="Yazılım">Yazılım</option>
+                <option value="Donanım">Donanım</option>
+                <option value="Ağ">Ağ</option>
+                <option value="Veritabanı">Veritabanı</option>
+                <option value="Diğer">Diğer</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-grid">
+            <button class="btn btn-secondary">Filtrele</button>
+        </div>
+    </form>
+
+    <table class="table table-hover table-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Hata</th>
+                <th>Kategori</th>
+                <th>Bildiren</th>
+                <th>Durum</th>
+                <th>Tarih</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var h in Model)
+            {
+                <tr>
+                    <td>
+                        <strong>@h.HataAdi</strong><br />
+                        <small class="text-muted">@h.HataAciklama</small>
+                    </td>
+                    <td>@h.KategoriBilgisi</td>
+                    <td>@h.OlusturanKullaniciAdi</td>
+                    <td>
+                        @if (h.Durum == "Açık")
+                        {
+                            <span class="badge bg-danger">Açık</span>
+                        }
+                        else if (h.Durum == "Kapalı")
+                        {
+
+                            <span class="badge bg-success">Kapalı</span>
+                        }
+                        else
+                        {
+
+                            <span class="badge bg-warning text-dark">@h.Durum</span>
+                        }
+                    </td>
+                    <td>@h.OlusturmaTarihi.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

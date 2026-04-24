@@ -1,0 +1,471 @@
+﻿@using System.Text.RegularExpressions
+@model IEnumerable<BtOperasyonTakip.Models.ToplantiNotu>
+@{
+	ViewData["Title"] = "Toplantı Notları";
+	var turler = ViewBag.ToplantiTurleri as IEnumerable<string> ?? new List<string>();
+	var aksiyonSahipleri = ViewBag.AksiyonSahipleri as IEnumerable<BtOperasyonTakip.Models.User> ?? new List<BtOperasyonTakip.Models.User>();
+   var konuPattern = new Regex(@"^\s*-?\s*(?<konu>.*?)(?:\s*\(Hedef Tarihi:\s*(?<tarih>[^\)]+)\))?\s*$", RegexOptions.Compiled);
+
+    List<(string Konu, string HedefTarihi)> ParseKonuSatirlari(string? konuMetni)
+    {
+        return (konuMetni ?? string.Empty)
+            .Replace("\r\n", "\n")
+            .Replace("\r", "\n")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x =>
+            {
+                var match = konuPattern.Match(x);
+                var konu = match.Success ? match.Groups["konu"].Value.Trim() : x;
+                var hedefTarihi = match.Success ? match.Groups["tarih"].Value.Trim() : string.Empty;
+                return (konu, hedefTarihi);
+            })
+            .ToList();
+    }
+}
+
+<style>
+    .toplanti-shell {
+        max-width: 1500px;
+    }
+
+    .toplanti-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+        color: #fff;
+        border-radius: 1.15rem;
+        padding: 1.4rem 1.5rem;
+        box-shadow: 0 1rem 2rem rgba(37, 99, 235, 0.16);
+    }
+
+    .toplanti-hero .hero-subtext {
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.92rem;
+    }
+
+    .toplanti-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-weight: 600;
+    }
+
+    .toplanti-card {
+        border: 0;
+        border-radius: 1rem;
+        box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+    .toplanti-card .card-header {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border-bottom: 1px solid #e9eef5;
+        padding: 1rem 1.25rem;
+    }
+
+    .toplanti-card .card-body {
+        padding: 1.25rem;
+    }
+
+    .toplanti-card .form-control,
+    .toplanti-card .form-select,
+    .toplanti-card .btn,
+    .toplanti-card .page-link,
+    .toplanti-card .input-group-text {
+        border-radius: 0.8rem;
+    }
+
+    .create-card {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    }
+
+    #konuTable {
+        margin-bottom: 0;
+    }
+
+    #konuTable thead th {
+        background: #f8fafc;
+        white-space: nowrap;
+    }
+
+    .accordion-item.toplanti-accordion-item {
+        border: 0;
+        border-radius: 1rem !important;
+        overflow: hidden;
+        box-shadow: 0 0.65rem 1.4rem rgba(15, 23, 42, 0.08);
+    }
+
+    .toplanti-accordion-item .accordion-button {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        padding: 1rem 1.2rem;
+    }
+
+    .toplanti-accordion-item .accordion-button:not(.collapsed) {
+        color: #1d4ed8;
+        background: #eef4ff;
+        box-shadow: none;
+    }
+
+    .toplanti-accordion-item .accordion-body {
+        padding: 1.25rem;
+    }
+
+    .note-toolbar .btn {
+        border-radius: 0.75rem;
+    }
+
+    .editable-content {
+        border-radius: 1rem;
+        background: #fff;
+    }
+
+    .toplanti-detail-table thead th {
+        background: #f8fafc;
+        white-space: nowrap;
+    }
+</style>
+
+<div class="container mt-4 toplanti-shell">
+    @if (TempData["ToplantiOk"] != null)
+    {
+        <div class="alert alert-success">@TempData["ToplantiOk"]</div>
+    }
+    @if (TempData["ToplantiError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ToplantiError"]</div>
+    }
+
+    <div class="toplanti-hero mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+            <h2 class="mb-1">🗒️ Müşteri Toplantı Notları</h2>
+            <div class="hero-subtext">Toplantı kayıtlarını oluşturun, inceleyin ve dışa aktarın.</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="toplanti-chip">Toplam Kayıt: @(Model?.Count() ?? 0)</span>
+            <span class="toplanti-chip">Tür Seçenekleri: @turler.Count()</span>
+        </div>
+    </div>
+
+    <div class="card toplanti-card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="fw-semibold text-primary">Arama</div>
+                <div class="small text-muted">Müşteri, ekleyen veya not içeriğine göre filtreleyin.</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-10">
+                    <label class="form-label">Ara (Müşteri / Ekleyen / Not)</label>
+                    <input name="q" value="@ViewBag.Q" class="form-control" placeholder="Örn: ABC toplantı..." />
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary w-100">🔎 Ara</button>
+                    <a class="btn btn-outline-secondary w-100" href="@Url.Action("Index", "ToplantiNotlari")">Temizle</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+ <div class="card toplanti-card create-card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="fw-semibold text-primary">Yeni Toplantı Kaydı</div>
+                <div class="small text-muted">Toplantı bilgilerini ve konu/hedef tarihlerini tek formdan kaydedin.</div>
+            </div>
+        </div>
+        <div class="card-body">
+    <form asp-action="Create" method="post" class="row g-3" id="createForm">
+        <div class="col-md-4">
+            <label class="form-label">Toplantı Başlığı *</label>
+            <input name="ToplantiBasligi" class="form-control" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Konum *</label>
+            <input name="Konum" class="form-control" required />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Tarih *</label>
+            <input name="Tarih" type="date" class="form-control" value="2026-02-26" required />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Saat *</label>
+            <input name="Saat" type="time" class="form-control" value="10:09" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Hazırlayan *</label>
+            <input name="Hazirlayan" class="form-control" value="*****" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Katılımcılar *</label>
+            <input name="Katilimcilar" class="form-control" required />
+        </div>
+		<div class="col-md-4">
+			<label class="form-label">Türü</label>
+			<select name="Tur" class="form-select">
+				<option value="">Seçiniz</option>
+				@foreach (var tur in turler)
+				{
+					<option value="@tur">@tur</option>
+				}
+			</select>
+		</div>
+		<div class="col-md-4">
+			<label class="form-label">Aksiyon Sahibi</label>
+			<select name="AksiyonSahibi" class="form-select">
+				<option value="">Seçiniz</option>
+				@foreach (var u in aksiyonSahipleri)
+				{
+					var displayName = string.IsNullOrWhiteSpace(u.FullName) ? u.UserName : u.FullName;
+					<option value="@displayName">@displayName</option>
+				}
+			</select>
+		</div>
+		<div class="col-12">
+			<label class="form-label">Konular ve Hedef Tarihleri *</label>
+			<div class="table-responsive mb-2">
+				<table class="table table-sm align-middle" id="konuTable">
+					<thead>
+						<tr>
+							<th style="width: 60%">Konu</th>
+							<th style="width: 30%">Hedef Tarihi</th>
+							<th style="width: 10%"></th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>
+								<input type="text" class="form-control konu-input" placeholder="Konu" />
+							</td>
+							<td>
+								<input type="date" class="form-control hedef-input" />
+							</td>
+							<td class="text-end">
+								<button type="button" class="btn btn-sm btn-outline-danger remove-konu-row">Sil</button>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<button type="button" class="btn btn-sm btn-outline-primary" id="addKonuRow">Yeni Konu Ekle</button>
+			<textarea name="Konu" id="KonuHidden" class="d-none"></textarea>
+			<input type="hidden" name="HedefTarihi" id="HedefTarihiHidden" />
+		</div>
+        <div class="col-12 d-flex align-items-end">
+            <button type="submit" class="btn btn-success w-100">💾 Kaydet</button>
+        </div>
+    </form>
+        </div>
+    </div>
+
+    <div class="accordion" id="notAccordion">
+        @foreach (var not in Model)
+        {
+            string collapseId = $"collapse_{not.Id}";
+            string headingId = $"heading_{not.Id}";
+          var konuSatirlari = ParseKonuSatirlari(not.Konu);
+            <div class="accordion-item toplanti-accordion-item mb-3">
+                <h2 class="accordion-header" id="@headingId">
+                    <button class="accordion-button collapsed fw-semibold note-toggle"
+                            type="button"
+                            data-target="#@collapseId"
+                            aria-expanded="false"
+                            aria-controls="@collapseId">
+                        <div class="d-flex flex-column">
+                            <span>👤 <strong>@not.MusteriAdi</strong> — <span class="text-muted small">@not.EkleyenKisi</span></span>
+                            <span class="small text-secondary">@not.Tarih.ToString("dd.MM.yyyy HH:mm")</span>
+                        </div>
+                    </button>
+                </h2>
+
+                <div id="@collapseId" class="accordion-collapse collapse" aria-labelledby="@headingId">
+                    <div class="accordion-body bg-white">
+                        <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2 note-toolbar">
+                            <h6 class="text-primary m-0">📝 Toplantı Notu</h6>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-primary btn-sm edit-btn" data-id="@not.Id">✏️ Düzenle</button>
+                                <button class="btn btn-outline-success btn-sm" onclick="downloadNote(@not.Id, 'pdf')">📄 PDF</button>
+                                <button class="btn btn-outline-info btn-sm" onclick="downloadNote(@not.Id, 'doc')">🧾 Word</button>
+                            </div>
+                        </div>
+
+                        <form method="post" action="@Url.Action("UpdateContent", "ToplantiNotlari")">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@not.Id" />
+                            <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                            <textarea class="d-none not-icerigi-input" name="notIcerigi"></textarea>
+
+                        <div class="editable-content border rounded p-3" contenteditable="false" data-id="@not.Id">
+                            <div>
+                                <div class="mb-2 text-center fw-bold fs-5">İsim</div>
+                                <div class="mb-3 text-center fw-semibold">Toplantı Tutanağı</div>
+                                <div><strong>Toplantı Başlığı:</strong> @not.ToplantiBasligi</div>
+                                <div><strong>Konum:</strong> @not.Konum</div>
+                                <div><strong>Tarih:</strong> @not.Tarih.ToString("dd.MM.yyyy") <strong>Saat:</strong> @not.Saat</div>
+                                <div><strong>Hazırlayan:</strong> @not.Hazirlayan</div>
+                                <div><strong>Katılımcılar:</strong> @not.Katilimcilar</div>
+                                 <div class="table-responsive mt-3">
+                                     <table class="table table-sm table-bordered align-middle mb-0 toplanti-detail-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 5%;">#</th>
+                                                <th style="width: 45%;">Konu</th>
+                                                <th style="width: 15%;">Türü</th>
+                                                <th style="width: 20%;">Aksiyon Sahibi</th>
+                                                <th style="width: 15%;">Hedef Tarihi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @if (konuSatirlari.Count == 0)
+                                            {
+                                                <tr>
+                                                    <td>1.</td>
+                                                    <td>@(string.IsNullOrWhiteSpace(not.Konu) ? not.NotIcerigi : not.Konu)</td>
+                                                    <td>@(string.IsNullOrWhiteSpace(not.Tur) ? "-" : not.Tur)</td>
+                                                    <td>@(string.IsNullOrWhiteSpace(not.AksiyonSahibi) ? "-" : not.AksiyonSahibi)</td>
+                                                    <td>@(string.IsNullOrWhiteSpace(not.HedefTarihi) ? "-" : not.HedefTarihi)</td>
+                                                </tr>
+                                            }
+                                            else
+                                            {
+                                                for (var i = 0; i < konuSatirlari.Count; i++)
+                                                {
+                                                    <tr>
+                                                        <td>@(i + 1).</td>
+                                                        <td>@konuSatirlari[i].Konu</td>
+                                                        <td>@(string.IsNullOrWhiteSpace(not.Tur) ? "-" : not.Tur)</td>
+                                                        <td>@(string.IsNullOrWhiteSpace(not.AksiyonSahibi) ? "-" : not.AksiyonSahibi)</td>
+                                                        <td>@(string.IsNullOrWhiteSpace(konuSatirlari[i].HedefTarihi) ? "-" : konuSatirlari[i].HedefTarihi)</td>
+                                                    </tr>
+                                                }
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).on('click', '.note-toggle', function () {
+            const targetId = $(this).data('target');
+            const target = $(targetId);
+            const isOpen = target.hasClass('show');
+
+            $('.accordion-collapse.show').each(function () {
+                const collapse = bootstrap.Collapse.getOrCreateInstance(this);
+                collapse.hide();
+            });
+
+            if (!isOpen) {
+                const collapse = bootstrap.Collapse.getOrCreateInstance(target[0]);
+                collapse.show();
+            }
+        });
+
+        $(document).on('click', '.edit-btn', function () {
+            const id = $(this).data('id');
+            const editable = $(`.editable-content[data-id='${id}']`);
+            const btn = $(this);
+
+            if (editable.attr('contenteditable') === 'false') {
+                editable.attr('contenteditable', 'true').addClass('border-primary');
+                btn.text('💾 Kaydet');
+            } else {
+                const form = editable.closest('form');
+                form.find('.not-icerigi-input').val(editable.html().trim());
+                form.trigger('submit');
+            }
+        });
+
+		let konuIndex = 1;
+
+		$(document).on('click', '#addKonuRow', function () {
+			const tbody = $('#konuTable tbody');
+			const row = `
+				<tr>
+					<td>
+						<input type="text" class="form-control konu-input" placeholder="Konu" />
+					</td>
+					<td>
+						<input type="date" class="form-control hedef-input" />
+					</td>
+					<td class="text-end">
+						<button type="button" class="btn btn-sm btn-outline-danger remove-konu-row">Sil</button>
+					</td>
+				</tr>`;
+			tbody.append(row);
+			konuIndex++;
+		});
+
+		$(document).on('click', '.remove-konu-row', function () {
+			const tbody = $('#konuTable tbody');
+			if (tbody.find('tr').length > 1) {
+				$(this).closest('tr').remove();
+			}
+		});
+
+		$('#createForm').on('submit', function (e) {
+			const rows = $('#konuTable tbody tr');
+			const lines = [];
+			let earliestDate = null;
+
+			rows.each(function () {
+				const konu = $(this).find('.konu-input').val().trim();
+				const hedef = $(this).find('.hedef-input').val();
+
+				if (!konu) {
+					return;
+				}
+
+				let line = konu;
+				if (hedef) {
+					line += ' (Hedef Tarihi: ' + hedef + ')';
+					const d = new Date(hedef);
+					if (!isNaN(d)) {
+						if (!earliestDate || d < earliestDate) {
+							earliestDate = d;
+						}
+					}
+				}
+
+				lines.push('- ' + line);
+			});
+
+			if (lines.length === 0) {
+				alert('En az bir konu girmelisiniz.');
+				e.preventDefault();
+				return;
+			}
+
+			$('#KonuHidden').val(lines.join('\n'));
+
+			if (earliestDate) {
+				const yyyy = earliestDate.getFullYear();
+				const mm = String(earliestDate.getMonth() + 1).padStart(2, '0');
+				const dd = String(earliestDate.getDate()).padStart(2, '0');
+				$('#HedefTarihiHidden').val(`${yyyy}-${mm}-${dd}`);
+			} else {
+				$('#HedefTarihiHidden').val('');
+			}
+		});
+
+        function downloadNote(id, format) {
+            window.location.href = `/ToplantiNotlari/Download/${id}?format=${format}`;
+        }
+    </script>
+}

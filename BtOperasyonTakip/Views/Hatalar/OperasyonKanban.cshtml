@@ -1,0 +1,21 @@
+﻿@model BtOperasyonTakip.Models.HataIssueViewModel
+
+@{
+    var bekleyenIssues = Model.Issues
+        .Where(x => x.Status == BtOperasyonTakip.Models.IssueStatus.Bekleme)
+        .OrderByDescending(x => x.CreatedAt)
+        .ToList();
+}
+
+@foreach (var issue in bekleyenIssues)
+{
+    <div class="kanban-card">
+        <div class="kanban-card-id"><span class="kanban-badge saha">SA-@issue.Id</span></div>
+        <div class="kanban-card-title">@issue.Title</div>
+        <div class="kanban-card-desc">@issue.Description</div>
+        <div class="kanban-card-footer">
+            <span>@issue.Reporter</span>
+            <span>@issue.CreatedAt.ToLocalTime().ToString("dd.MM")</span>
+        </div>
+    </div>
+}

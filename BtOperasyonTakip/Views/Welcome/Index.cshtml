@@ -1,0 +1,176 @@
+﻿@{
+    ViewData["Title"] = "Karşılama Sayfası";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: linear-gradient(135deg, #eaf1ff, #f6f9ff);
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .scene {
+        display: none;
+        text-align: center;
+        animation: fadeIn 1s ease forwards;
+    }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .typing {
+        border-right: 2px solid #007bff;
+        white-space: nowrap;
+        overflow: hidden;
+        animation: typing 2s steps(40, end), blink .75s step-end infinite;
+    }
+
+    @@keyframes typing {
+        from
+
+    {
+        width: 0
+    }
+
+    to {
+        width: 100%
+    }
+
+    }
+
+    @@keyframes blink {
+        from, to
+
+    {
+        border-color: transparent
+    }
+
+    50% {
+        border-color: #007bff
+    }
+
+    }
+
+    .clock {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #0056d6;
+    }
+</style>
+
+<div class="container text-center">
+
+    <div id="scene1" class="scene">
+        <div class="card p-4 shadow-lg border-0">
+            <h3 class="typing text-primary fw-bold mb-3" id="loaderText"></h3>
+        </div>
+    </div>
+
+
+    <div id="scene2" class="scene">
+        <div class="card shadow-lg border-0 p-5">
+            <h2 class="text-primary fw-bold mb-3">👋 Hoş geldin, @User.Identity?.Name!</h2>
+            <p class="lead text-muted">BT Operasyon Takip sistemine başarıyla giriş yaptın.</p>
+
+            <div class="mt-4">
+                <button id="enterBtn" class="btn btn-primary btn-lg">
+                    🚀 Panele Giriş Yap
+                </button>
+                <a asp-controller="Auth" asp-action="Logout" class="btn btn-outline-danger btn-lg ms-2">
+                    🔒 Çıkış Yap
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="scene3" class="scene">
+        <div class="card shadow-lg border-0 p-5 bg-light">
+            <h2 class="text-primary mb-3">Hoşgeldiniz</h2>
+            <div id="clock" class="clock mb-2"></div>
+            <p class="lead text-success fw-semibold" id="motivasyonMetni"></p>
+            <p class="text-muted">Yönlendiriliyor...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+   
+    const loaderTexts = [
+        "Sistemi başlatıyor...",
+        "Veritabanı bağlantısı kuruluyor...",
+        "Modüller yükleniyor...",
+        "Dashboard hazırlanıyor...",
+        
+    ];
+    let index = 0;
+
+    function showTyping() {
+        if (index < loaderTexts.length) {
+            const text = loaderTexts[index];
+            const el = document.getElementById("loaderText");
+            el.textContent = "";
+            let i = 0;
+            const interval = setInterval(() => {
+                el.textContent = text.substring(0, i++);
+                if (i > text.length) {
+                    clearInterval(interval);
+                    index++;
+                    setTimeout(showTyping, 1000);
+                }
+            }, 50);
+        } else {
+            setTimeout(() => {
+                document.getElementById("scene1").style.display = "none";
+                document.getElementById("scene2").style.display = "block";
+            }, 500);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("scene1").style.display = "block";
+        showTyping();
+
+        document.getElementById("enterBtn")?.addEventListener("click", () => {
+            document.getElementById("scene2").style.display = "none";
+            document.getElementById("scene3").style.display = "block";
+            startClock();
+            showMotivasyon();
+            setTimeout(() => window.location.href = "/Dashboard", 4000);
+        });
+    });
+
+   
+    function startClock() {
+        const clock = document.getElementById("clock");
+        setInterval(() => {
+            const now = new Date();
+            clock.textContent = now.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        }, 1000);
+    }
+
+    function showMotivasyon() {
+        const mesajlar = [
+            "Hoşgeldiniz",
+       
+        ];
+        document.getElementById("motivasyonMetni").textContent = mesajlar[Math.floor(Math.random() * mesajlar.length)];
+    }
+</script>

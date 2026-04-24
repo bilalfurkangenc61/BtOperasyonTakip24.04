@@ -1,0 +1,54 @@
+﻿@model BtOperasyonTakip.Models.Detay
+@{
+    ViewData["Title"] = "Yeni Görüşme Detayı";
+    var musteriler = (ViewBag.Musteriler as List<BtOperasyonTakip.Models.Musteri>) ?? new();
+}
+
+<div class="container mt-4">
+    <h2 class="text-primary mb-3">Yeni Görüşme Detayı Ekle</h2>
+
+    <form asp-action="Create" method="post" class="row g-3 border p-3 rounded bg-light">
+        @Html.AntiForgeryToken()
+
+        <div class="col-md-4">
+            <label class="form-label">Müşteri</label>
+            <select asp-for="MusteriID" class="form-select" required>
+                <option value="">Seçiniz...</option>
+                @foreach (var m in musteriler)
+                {
+                    <option value="@m.MusteriID">@m.Firma</option>
+                }
+            </select>
+            <span asp-validation-for="MusteriID" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Tarih</label>
+            <input asp-for="Tarih" type="datetime-local" class="form-control" required />
+            <span asp-validation-for="Tarih" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Görüşülen</label>
+            <input asp-for="Gorusulen" class="form-control" />
+            <span asp-validation-for="Gorusulen" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-12">
+            <label class="form-label">Açıklama</label>
+            <textarea asp-for="Aciklama" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="Aciklama" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Ekleyen</label>
+            <input asp-for="Kekleyen" class="form-control" />
+            <span asp-validation-for="Kekleyen" class="text-danger"></span>
+        </div>
+
+        <div class="col-12">
+            <button type="submit" class="btn btn-success">Kaydet</button>
+            <a asp-action="Index" class="btn btn-secondary">Vazgeç</a>
+        </div>
+    </form>
+</div>

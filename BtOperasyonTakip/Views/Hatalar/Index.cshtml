@@ -1,0 +1,101 @@
+﻿@model List<BtOperasyonTakip.Models.ViewModels.HataListItemVm>
+
+@{
+    ViewData["Title"] = "Hatalar Yönetimi";
+}
+
+<div class="container mt-5">
+    <h2>Hatalar</h2>
+
+    <div class="d-flex justify-content-end flex-wrap mb-3 gap-2">
+        <a class="btn btn-outline-success"
+           href="@Url.Action("ExportExcel", "Hatalar", new { q = ViewBag.Q, durum = ViewBag.Durum, kategori = ViewBag.Kategori, period = ViewBag.Period })">
+            Excel'e İndir
+        </a>
+
+        <a href="/Hatalar/Yeni" class="btn btn-primary">
+            ➕ Yeni Hata Ekle
+        </a>
+    </div>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-3">
+            <input type="text" name="q" value="@ViewBag.Q" class="form-control" placeholder="Hata adı, açıklama veya müşteri ara..." />
+        </div>
+
+        <div class="col-md-2">
+            <select name="durum" class="form-control">
+                <option value="">Tüm Durumlar</option>
+                <option value="Açık" selected="@(ViewBag.Durum == "Açık")">Açık</option>
+                <option value="Kapalı" selected="@(ViewBag.Durum == "Kapalı")">Kapalı</option>
+                <option value="Beklemede" selected="@(ViewBag.Durum == "Beklemede")">Beklemede</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <select name="kategori" class="form-control">
+                <option value="">Tüm Kategoriler</option>
+                <option value="Yazılım" selected="@(ViewBag.Kategori == "Yazılım")">Yazılım</option>
+                <option value="Donanım" selected="@(ViewBag.Kategori == "Donanım")">Donanım</option>
+                <option value="Ağ" selected="@(ViewBag.Kategori == "Ağ")">Ağ</option>
+                <option value="Veritabanı" selected="@(ViewBag.Kategori == "Veritabanı")">Veritabanı</option>
+                <option value="Diğer" selected="@(ViewBag.Kategori == "Diğer")">Diğer</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <input type="month" name="period" value="@ViewBag.Period" class="form-control" />
+        </div>
+
+        <div class="col-md-3 d-grid">
+            <button class="btn btn-secondary">Filtrele</button>
+        </div>
+    </form>
+
+    <table class="table table-hover table-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Hata</th>
+                <th>Müşteri</th>
+                <th>Kategori</th>
+                <th>Atanan</th>
+                <th>Durum</th>
+                <th>Tarih</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var h in Model)
+            {
+                <tr>
+                    <td>@h.HataAdi</td>
+                    <td>@(string.IsNullOrWhiteSpace(h.MusteriFirma) ? "-" : h.MusteriFirma)</td>
+                    <td>@h.KategoriBilgisi</td>
+                    <td>@h.OlusturanKullaniciAdi</td>
+
+                    <td>
+                        @if (h.Durum == "Açık")
+                        {
+                            <span class="badge bg-danger">Açık</span>
+                        }
+                        else if (h.Durum == "Kapalı")
+                        {
+                            <span class="badge bg-success">Kapalı</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning">@h.Durum</span>
+                        }
+                    </td>
+
+                    <td>@h.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
+
+                    <td>
+                        <a href="/Hatalar/Detay/@h.Id" class="btn btn-sm btn-info">Detay</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

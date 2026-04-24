@@ -1,0 +1,216 @@
+@model BtOperasyonTakip.Models.ExcelAktarimIndexViewModel
+@{
+    ViewData["Title"] = "Excel Aktarım";
+    var currentPage = Model.Page <= 0 ? 1 : Model.Page;
+    var pageSize = Model.PageSize <= 0 ? 25 : Model.PageSize;
+    var totalPages = Model.TotalPages <= 0 ? 1 : Model.TotalPages;
+}
+
+<style>
+    .excel-shell {
+        max-width: 1500px;
+    }
+
+    .excel-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+        color: #fff;
+        border-radius: 18px;
+        padding: 1.4rem 1.5rem;
+        box-shadow: 0 18px 32px rgba(37, 99, 235, 0.14);
+    }
+
+    .excel-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-weight: 600;
+    }
+
+    .excel-card {
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+    .excel-card .card-header {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border-bottom: 1px solid #e6edf7;
+        padding: 1rem 1.2rem;
+    }
+
+    .excel-card .card-body {
+        padding: 1.2rem;
+    }
+
+    .excel-card .form-control,
+    .excel-card .btn,
+    .excel-card .page-link {
+        border-radius: 12px;
+    }
+</style>
+
+<div class="container py-2 excel-shell">
+    <div class="excel-hero mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+            <h4 class="mb-1 text-white">Excel Aktarım</h4>
+            <div class="text-white-50">Excel yükleyin, veriler veritabanına kaydedilsin ve eşleşen müşterilerin detaylarına işlensin.</div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <span class="excel-chip">Toplam Kayıt: @Model.TotalCount</span>
+            <span class="excel-chip">Eşleşen: @Model.EslesenCount</span>
+            <span class="excel-chip">Eşleşmeyen: @Model.EslesmeyenCount</span>
+        </div>
+    </div>
+
+    @if (TempData["ExcelAktarimOk"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["ExcelAktarimOk"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    @if (TempData["ExcelAktarimError"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ExcelAktarimError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <div class="card excel-card h-100">
+                <div class="card-header">
+                    <div class="fw-semibold">Excel Yükle</div>
+                    <div class="small text-muted">Şu sütunlardan biri varsa aktarım yapılır: Müşteri/Firma, Tarih, İş-Görüşülen, Açıklama, Ekleyen.</div>
+                </div>
+                <div class="card-body">
+                    <form asp-controller="ExcelAktarim" asp-action="Upload" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">Excel Dosyası (.xlsx)</label>
+                            <input type="file" name="file" class="form-control" accept=".xlsx" required />
+                        </div>
+
+                        <div class="small text-muted mb-3">
+                            Eşleşen müşteri bulunursa ilgili kayıt Detaylar sayfasına da eklenir.
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Yükle ve Kaydet</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card excel-card h-100">
+                <div class="card-header">
+                    <div class="fw-semibold">İçe Aktarılan Kayıtlar</div>
+                    <div class="small text-muted">Bu sayfada yüklediğiniz Excel verilerini ayrı olarak görüntüleyebilirsiniz.</div>
+                </div>
+                <div class="card-body">
+                    <form method="get" asp-controller="ExcelAktarim" asp-action="Index" class="row g-2 align-items-end">
+                        <div class="col-md-8">
+                            <label class="form-label">Ara</label>
+                            <input name="q" value="@Model.Q" class="form-control" placeholder="Dosya adı / müşteri / açıklama / ekleyen..." />
+                        </div>
+                        <div class="col-md-2 d-grid">
+                            <input type="hidden" name="page" value="1" />
+                            <input type="hidden" name="pageSize" value="@pageSize" />
+                            <button type="submit" class="btn btn-primary">Ara</button>
+                        </div>
+                        <div class="col-md-2 d-grid">
+                            <a class="btn btn-outline-secondary" href="@Url.Action("Index", "ExcelAktarim", new { page = 1, pageSize = pageSize })">Temizle</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card excel-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Yükleme</th>
+                            <th>Dosya</th>
+                            <th>Satır</th>
+                            <th>Müşteri</th>
+                            <th>Durum</th>
+                            <th>Tarih</th>
+                            <th>İş / Görüşülen</th>
+                            <th>Açıklama</th>
+                            <th>Ekleyen</th>
+                            <th>Yükleyen</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Kayitlar)
+                        {
+                            var durumBadge = item.EslesenMusteriID.HasValue ? "text-bg-success" : "text-bg-secondary";
+                            var durumText = item.EslesenMusteriID.HasValue ? "Eşleşti" : "Eşleşmedi";
+                            <tr>
+                                <td>@item.YuklemeTarihi.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td>@item.DosyaAdi</td>
+                                <td>@item.SatirNo</td>
+                                <td>@(string.IsNullOrWhiteSpace(item.MusteriAdi) ? "-" : item.MusteriAdi)</td>
+                                <td><span class="badge @durumBadge">@durumText</span></td>
+                                <td>@(item.Tarih.HasValue ? item.Tarih.Value.ToString("dd.MM.yyyy HH:mm") : "-")</td>
+                                <td>@(string.IsNullOrWhiteSpace(item.Gorusulen) ? "-" : item.Gorusulen)</td>
+                                <td style="max-width:280px; white-space:normal;">@(string.IsNullOrWhiteSpace(item.Aciklama) ? "-" : item.Aciklama)</td>
+                                <td>@(string.IsNullOrWhiteSpace(item.Ekleyen) ? "-" : item.Ekleyen)</td>
+                                <td>@(string.IsNullOrWhiteSpace(item.YukleyenKullaniciAdi) ? "-" : item.YukleyenKullaniciAdi)</td>
+                                <td>
+                                    @if (item.EslesenMusteriID.HasValue)
+                                    {
+                                        <a class="btn btn-sm btn-outline-primary" href="@Url.Action("Index", "Detay", new { musteriId = item.EslesenMusteriID.Value })">Detaya Git</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+
+                        @if (!Model.Kayitlar.Any())
+                        {
+                            <tr>
+                                <td colspan="11" class="text-center text-muted py-4">Henüz aktarılmış kayıt yok.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <nav class="mt-3" aria-label="Excel aktarım sayfalama">
+        <ul class="pagination pagination-sm mb-0 flex-wrap">
+            <li class="page-item @(currentPage <= 1 ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("Index", "ExcelAktarim", new { q = Model.Q, page = currentPage - 1, pageSize = pageSize })">Önceki</a>
+            </li>
+
+            @for (var i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+            {
+                <li class="page-item @(i == currentPage ? "active" : "")">
+                    <a class="page-link" href="@Url.Action("Index", "ExcelAktarim", new { q = Model.Q, page = i, pageSize = pageSize })">@i</a>
+                </li>
+            }
+
+            <li class="page-item disabled">
+                <span class="page-link">Sayfa @currentPage / @totalPages (Toplam: @Model.TotalCount)</span>
+            </li>
+
+            <li class="page-item @(currentPage >= totalPages ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("Index", "ExcelAktarim", new { q = Model.Q, page = currentPage + 1, pageSize = pageSize })">Sonraki</a>
+            </li>
+        </ul>
+    </nav>
+</div>

@@ -1,0 +1,578 @@
+@model IEnumerable<BtOperasyonTakip.Models.Musteri>
+@{
+    ViewData["Title"] = "Görüşme Detayları";
+}
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+<link rel="stylesheet" href="https://cdn.datatables.net/datetime/1.5.2/css/dataTables.dateTime.min.css" />
+
+<style>
+    #musteriTable_wrapper {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    #musteriTable {
+        width: 100% !important;
+        font-size: 0.9rem;
+    }
+
+        #musteriTable th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #musteriTable td {
+            vertical-align: middle;
+        }
+
+    .table-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .dataTables_filter input {
+        border: 1px solid #ddd !important;
+        border-radius: 4px !important;
+        padding: 6px 12px !important;
+        margin-left: 10px !important;
+    }
+
+    .dataTables_filter label {
+        font-weight: 600;
+        padding: 4px;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    @if (TempData["MusteriOk"] != null)
+    {
+        <div class="alert alert-success">@TempData["MusteriOk"]</div>
+    }
+    @if (TempData["MusteriError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["MusteriError"]</div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-primary mb-0">Müşteriler</h2>
+        <button type="button" class="btn btn-primary" id="openCreateMusteriModal">
+            + Yeni Müşteri
+        </button>
+    </div>
+
+    <!-- FİLTRE / ARAMA (SERVER-SIDE, AJAX YOK) -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            @{
+                var search = (ViewData["Search"] as string) ?? "";
+                var selectedDurum = (ViewData["SelectedDurum"] as string) ?? "";
+                var selectedTeknoloji = (ViewData["SelectedTeknoloji"] as string) ?? "";
+                var selectedTalepSahibi = (ViewData["SelectedTalepSahibi"] as string) ?? "";
+
+                var currentPage = Convert.ToInt32(ViewData["Page"] ?? 1);
+                var pageSize = Convert.ToInt32(ViewData["PageSize"] ?? 25);
+                var totalCount = Convert.ToInt32(ViewData["TotalCount"] ?? 0);
+                var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+                if (totalPages < 1) totalPages = 1;
+            }
+
+            <form method="get" action="@Url.Action("Index", "Musteri")">
+                <input type="hidden" name="page" value="1" />
+                <input type="hidden" name="pageSize" value="@pageSize" />
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-md-3">
+                        <label class="form-label">Firma Ara</label>
+                        <input id="filterSearch" name="search" value="@search" class="form-control" placeholder="Firma adı yazın..." />
+                    </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Durum</label>
+                    <select id="filterDurum" name="durum" class="form-select">
+                        <option value="">Tümü</option>
+                        @foreach (var d in (ViewData["Durumlar"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
+                        {
+                            <option value="@d" selected="@(string.Equals(d, selectedDurum, StringComparison.OrdinalIgnoreCase))">@d</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Teknoloji</label>
+                    <select id="filterTeknoloji" name="teknoloji" class="form-select">
+                        <option value="">Tümü</option>
+                        @foreach (var t in (ViewData["Teknolojiler"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
+                        {
+                            <option value="@t" selected="@(string.Equals(t, selectedTeknoloji, StringComparison.OrdinalIgnoreCase))">@t</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Talep Sahibi</label>
+                    <select id="filterTalep" name="talepSahibi" class="form-select">
+                        <option value="">Tümü</option>
+                        @foreach (var ts in (ViewData["TalepSahipleri"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
+                        {
+                            <option value="@ts" selected="@(string.Equals(ts, selectedTalepSahibi, StringComparison.OrdinalIgnoreCase))">@ts</option>
+                        }
+                    </select>
+                </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Excel Ay</label>
+                        <input id="exportMonth" type="month" class="form-control" />
+                    </div>
+
+                    <div class="col-md-2 d-grid">
+                        <button id="btnExportMonth" type="button" class="btn btn-success">
+                            Tüm Excel
+                        </button>
+                    </div>
+
+                    <div class="col-md-2 d-grid">
+                        <button id="btnExportNewCustomers" type="button" class="btn btn-outline-success">
+                            Yeni Müşteriler Excel
+                        </button>
+                    </div>
+
+                    <div class="col-md-2 d-grid">
+                        <button type="submit" class="btn btn-primary">Filtrele</button>
+                    </div>
+
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- TABLO (AJAX YOK) -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="musteriTable" class="table table-striped table-hover table-bordered mb-0">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th style="display:none;">ID</th>
+                            <th>Firma</th>
+                            <th>Yetkili</th>
+                            <th>Telefon</th>
+                            <th>Site URL</th>
+                            <th>Teknoloji</th>
+                            <th>Durum</th>
+                            <th>Durum Değ. Tarihi</th>
+                            <th>Talep Sahibi</th>
+                            <th>Kaynak</th>
+                            <th>Kayıt Tarihi</th>
+                            <th>Açıklama</th>
+                            <th width="100">İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in (Model ?? Enumerable.Empty<BtOperasyonTakip.Models.Musteri>())
+                                                .OrderByDescending(x => x.KayitTarihi ?? DateTime.MinValue)
+                                                .ThenByDescending(x => x.MusteriID))
+                        {
+                            var isDokumanDurumu = string.Equals((m.Durum ?? "").Trim(), "Döküman Gönderildi", StringComparison.OrdinalIgnoreCase);
+                            var kontrolBaslangic = m.DokumanKontrolBaslangicTarihi ?? m.DurumDegisiklikTarihi ?? m.KayitTarihi;
+                            var ucGunGecti = isDokumanDurumu && kontrolBaslangic.HasValue && (DateTime.Now - kontrolBaslangic.Value).TotalDays >= 3;
+                            var satirCls = "";
+                            if (isDokumanDurumu)
+                            {
+                                // 3 gunu gecmisse kirmizi, aksi halde en son gonderildi butonuna basildiysa yesil
+                                if (ucGunGecti) satirCls = "table-danger";
+                                else if (m.DokumanGonderildiMi == true) satirCls = "table-success";
+                            }
+
+                            var durum = (m.Durum ?? "").Trim();
+                            var durumCls =
+                            string.Equals(durum, "Aktif", StringComparison.OrdinalIgnoreCase) ? "bg-success" :
+                            string.Equals(durum, "Pasif", StringComparison.OrdinalIgnoreCase) ? "bg-danger" :
+                            string.Equals(durum, "Beklemede", StringComparison.OrdinalIgnoreCase) ? "bg-warning text-dark" :
+                            "bg-secondary";
+
+                            var kaynak = (m.Kaynak ?? "").Trim();
+                            var aciklama = m.Aciklama ?? "";
+                            var aciklamaShort = aciklama.Length > 80 ? aciklama.Substring(0, 80) + "..." : aciklama;
+
+                            <tr class="@satirCls">
+                                <td style="display:none;">@m.MusteriID</td>
+                                <td>@m.Firma</td>
+                                <td>@m.FirmaYetkilisi</td>
+                                <td>@m.Telefon</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(m.SiteUrl))
+                                    {
+                                        <a href="@m.SiteUrl" target="_blank" class="text-decoration-none site-link">🔗 Site</a>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(m.Teknoloji))
+                                    {
+                                        <span class="badge bg-info">@m.Teknoloji</span>
+                                    }
+                                </td>
+                                <td><span class="badge @durumCls">@durum</span></td>
+                                <td>@(m.DurumDegisiklikTarihi.HasValue ? m.DurumDegisiklikTarihi.Value.ToString("dd.MM.yyyy") : "-")</td>
+                                <td>@m.TalepSahibi</td>
+                                <td>@(string.IsNullOrWhiteSpace(kaynak) ? "-" : kaynak)</td>
+                                <td>@(m.KayitTarihi.HasValue? m.KayitTarihi.Value.ToString("dd.MM.yyyy") : "-")</td>
+                                <td>
+                                    <span class="text-truncate d-inline-block" style="max-width:200px;" title="@aciklama">
+                                        @aciklamaShort
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        @if (isDokumanDurumu)
+                                        {
+                                            <button type="button" class="btn btn-outline-success dokuman-btn" data-id="@m.MusteriID" data-gonderildi="true">Gönderildi</button>
+                                            <button type="button" class="btn btn-outline-secondary dokuman-btn" data-id="@m.MusteriID" data-gonderildi="false">Gönderilmedi</button>
+                                        }
+                                        <button type="button" class="btn btn-outline-warning edit-btn" data-id="@m.MusteriID">✏️</button>
+                                        <button type="button" class="btn btn-outline-danger delete-btn" data-id="@m.MusteriID">❌</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="selectedInfo" class="alert alert-info mt-3" style="display:none;"></div>
+    <div id="detayContainer" class="mt-3"></div>
+
+    <nav class="mt-3" aria-label="Sayfalama">
+        <ul class="pagination pagination-sm mb-0 flex-wrap">
+            <li class="page-item @(currentPage <= 1 ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("Index", "Musteri", new { page = currentPage - 1, pageSize, search, durum = selectedDurum, teknoloji = selectedTeknoloji, talepSahibi = selectedTalepSahibi })">Önceki</a>
+            </li>
+
+            @{
+                var window = 2;
+                var startPage = Math.Max(1, currentPage - window);
+                var endPage = Math.Min(totalPages, currentPage + window);
+
+                if (startPage > 1)
+                {
+                    <li class="page-item @(currentPage == 1 ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("Index", "Musteri", new { page = 1, pageSize, search, durum = selectedDurum, teknoloji = selectedTeknoloji, talepSahibi = selectedTalepSahibi })">1</a>
+                    </li>
+
+                    if (startPage > 2)
+                    {
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                    }
+                }
+
+                for (var p = startPage; p <= endPage; p++)
+                {
+                    <li class="page-item @(p == currentPage ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("Index", "Musteri", new { page = p, pageSize, search, durum = selectedDurum, teknoloji = selectedTeknoloji, talepSahibi = selectedTalepSahibi })">@p</a>
+                    </li>
+                }
+
+                if (endPage < totalPages)
+                {
+                    if (endPage < totalPages - 1)
+                    {
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                    }
+
+                    <li class="page-item @(currentPage == totalPages ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("Index", "Musteri", new { page = totalPages, pageSize, search, durum = selectedDurum, teknoloji = selectedTeknoloji, talepSahibi = selectedTalepSahibi })">@totalPages</a>
+                    </li>
+                }
+            }
+
+            <li class="page-item disabled">
+                <span class="page-link">Sayfa @currentPage / @totalPages (Toplam: @totalCount)</span>
+            </li>
+            <li class="page-item @(currentPage >= totalPages ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("Index", "Musteri", new { page = currentPage + 1, pageSize, search, durum = selectedDurum, teknoloji = selectedTeknoloji, talepSahibi = selectedTalepSahibi })">Sonraki</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<div class="modal fade" id="createMusteriModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Yeni Müşteri Ekle</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form id="createMusteriForm" method="post" action="@Url.Action("CreateMusteri", "Detay")">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Firma Adı *</label>
+                            <input type="text" name="Firma" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Firma Yetkilisi</label>
+                            <input type="text" name="FirmaYetkilisi" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Telefon</label>
+                            <input type="text" name="Telefon" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Site URL</label>
+                            <input type="text" name="SiteUrl" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Teknoloji</label>
+                            <select name="Teknoloji" class="form-select">
+                                <option value="">Seçiniz</option>
+                                @foreach (var t in (ViewData["Teknolojiler"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
+                                {
+                                    <option value="@t">@t</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Talep Sahibi</label>
+                            <select name="TalepSahibi" class="form-select">
+                                <option value="">Seçiniz</option>
+                                @foreach (var ts in (ViewData["TalepSahipleri"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
+                                {
+                                    <option value="@ts">@ts</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Kaynak</label>
+                            <select name="Kaynak" class="form-select">
+                                <option value="">Seçiniz</option>
+                                <option value="Kurumsal">Kurumsal</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Durum *</label>
+                            <select name="Durum" class="form-select" required>
+                                <option value="">Seçiniz</option>
+                                @foreach (var d in (ViewData["Durumlar"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
+                                {
+                                    <option value="@d">@d</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Açıklama</label>
+                            <textarea name="Aciklama" class="form-control" rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal fade" id="editMusteriModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title">✏️ Müşteri Düzenle</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form id="editMusteriForm" method="post" action="@Url.Action("UpdateMusteri", "Detay")">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                <div class="modal-body">
+
+                    <input type="hidden" id="editMusteriId" name="MusteriID" />
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+                            <label class="form-label">Firma Adı *</label>
+                            <input type="text" id="editFirma" name="Firma" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Firma Yetkilisi</label>
+                            <input type="text" id="editFirmaYetkilisi" name="FirmaYetkilisi" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Telefon</label>
+                            <input type="text" id="editTelefon" name="Telefon" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Site URL</label>
+                            <input type="text" id="editSiteUrl" name="SiteUrl" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Teknoloji</label>
+                            <input type="text" id="editTeknoloji" name="Teknoloji" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Durum *</label>
+                            <select id="editDurum" name="Durum" class="form-select" required>
+                                <option value="">Seçiniz</option>
+                                @foreach (var d in (ViewData["Durumlar"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
+                                {
+                                    <option value="@d">@d</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Talep Sahibi</label>
+                            <input type="text" id="editTalepSahibi" name="TalepSahibi" class="form-control" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Açıklama</label>
+                            <textarea id="editAciklama" name="Aciklama" class="form-control" rows="4"></textarea>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-warning">Güncelle</button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+
+            function escapeHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            const table = $('#musteriTable').DataTable({
+                searching: false,
+                order: [[9, 'desc']],
+                responsive: false,
+                pageLength: 25,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                language: {
+                    search: "Firma Ara:",
+                    searchPlaceholder: "Firma adı yazın..."
+                },
+                columnDefs: [
+                    { targets: 0, visible: false, searchable: false },
+                    { targets: 4, orderable: false },
+                    { targets: 11, orderable: false, searchable: false }
+                ]
+            });
+            
+            
+            
+
+            if (!$('#exportMonth').val()) {
+                const now = new Date();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                $('#exportMonth').val(`${now.getFullYear()}-${mm}`);
+            }
+
+            $('#btnExportMonth').on('click', function () {
+                const month = String($('#exportMonth').val() ?? '').trim();
+                if (!month) {
+                    alert('Lütfen bir ay seçin.');
+                    return;
+                }
+
+                const url = `/Musteri/ExportExcelByMonth?month=${encodeURIComponent(month)}`;
+                window.location.href = url;
+            });
+
+            $('#btnExportNewCustomers').on('click', function () {
+                // Ay seçiminden bağımsız; her zaman bu (güncel) ayın yeni müşterilerini indirir
+                window.location.href = '/Musteri/ExportNewCustomersExcelByMonth';
+            });
+
+            $('#filterDurum, #filterTeknoloji, #filterTalep').on('change', function () {
+                $(this).closest('form').trigger('submit');
+            });
+
+            $(document).on('click', 'a.site-link', function (e) {
+                e.stopPropagation();
+            });
+
+            $(document).on('click', '#musteriTable tbody tr', function (e) {
+                if ($(e.target).closest('button').length) return;
+
+                const id = Number($(this).find('td:first').text() || 0);
+
+                if (!id) return;
+
+                window.location.href = `/Detay?musteriId=${id}`;
+            });
+
+            $(document).on('click', '.edit-btn', function (e) {
+                e.stopPropagation();
+
+                const row = $(this).closest('tr');
+                $('#editMusteriId').val($(this).data('id'));
+                $('#editFirma').val(row.find('td').eq(1).text().trim());
+                $('#editFirmaYetkilisi').val(row.find('td').eq(2).text().trim());
+                $('#editTelefon').val(row.find('td').eq(3).text().trim());
+                $('#editSiteUrl').val(row.find('td').eq(4).find('a').attr('href') || '');
+                $('#editTeknoloji').val(row.find('td').eq(5).text().trim());
+                $('#editDurum').val(row.find('td').eq(6).text().trim());
+                $('#editTalepSahibi').val(row.find('td').eq(8).text().trim());
+                $('#editAciklama').val(row.find('td').eq(11).find('span').attr('title') || row.find('td').eq(11).text().trim());
+
+                $('#editMusteriModal').modal('show');
+            });
+
+            $('#openCreateMusteriModal').on('click', function () {
+                $('#createMusteriForm')[0].reset();
+                $('#createMusteriModal').modal('show');
+            });
+
+            $(document).on('submit', '.delete-form', function (e) {
+                if (!confirm("Silinsin mi?")) {
+                    e.preventDefault();
+                }
+            });
+
+        });
+    </script>
+}

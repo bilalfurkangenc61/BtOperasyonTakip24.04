@@ -1,0 +1,578 @@
+﻿@model BtOperasyonTakip.Models.DetayBoardViewModel
+@{
+    ViewData["Title"] = "Görüşme Detayları";
+    var selectedMusteriId = Model.SelectedMusteriId;
+    var sonDetaylar = Model.SonDetaylar ?? new Dictionary<int, BtOperasyonTakip.Models.Detay>();
+    var musteriList = Model.Musteriler ?? new List<BtOperasyonTakip.Models.Musteri>();
+    var currentPage = Model.Page <= 0 ? 1 : Model.Page;
+    var pageSize = Model.PageSize <= 0 ? 10 : Model.PageSize;
+    var totalPages = Model.TotalPages <= 0 ? 1 : Model.TotalPages;
+    var pageStart = Model.TotalCount == 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
+    var pageEnd = Math.Min(Model.TotalCount, currentPage * pageSize);
+}
+
+<style>
+    .detay-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+        color: #fff;
+        border-radius: 20px;
+        padding: 1.35rem 1.5rem;
+        box-shadow: 0 18px 32px rgba(37, 99, 235, 0.16);
+    }
+
+    .detay-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.55rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        font-weight: 600;
+    }
+
+    .detay-filter-card,
+    .detay-list-card {
+        border: 0;
+        border-radius: 20px;
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+    .detay-filter-card .card-body,
+    .detay-list-card .card-body {
+        padding: 1.2rem;
+    }
+
+    .detay-filter-card .form-control,
+    .detay-filter-card .form-select,
+    .detay-filter-card .btn,
+    .detay-list-card .btn {
+        border-radius: 12px;
+    }
+
+    .musteri-card {
+        border: 1px solid #e4ebf5;
+        border-radius: 18px;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.07);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        cursor: pointer;
+    }
+
+    .musteri-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 28px rgba(15, 23, 42, 0.1);
+        border-color: #bfd4ff;
+    }
+
+    .musteri-card-selected {
+        border-color: #2563eb;
+        box-shadow: 0 18px 32px rgba(37, 99, 235, 0.18);
+    }
+
+    .musteri-card-meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .musteri-card-meta-item {
+        border: 1px solid #edf2f7;
+        border-radius: 12px;
+        background: #f8fbff;
+        padding: 0.75rem;
+    }
+
+    .musteri-card-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+
+    .musteri-card-value {
+        color: #0f172a;
+        font-weight: 600;
+        margin-top: 0.2rem;
+        word-break: break-word;
+    }
+
+    .musteri-card-collapse {
+        border-top: 1px solid #edf2f7;
+        margin-top: 1rem;
+        padding-top: 1rem;
+    }
+
+    .selected-info {
+        border: 1px solid #dbe7ff;
+        background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+        color: #1d4ed8;
+        border-radius: 16px;
+    }
+
+    @@media (max-width: 767.98px) {
+        .musteri-card-meta {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+
+<div class="container-fluid mt-4">
+    @if (TempData["DetayOk"] != null)
+    {
+        <div class="alert alert-success">@TempData["DetayOk"]</div>
+    }
+    @if (TempData["DetayError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["DetayError"]</div>
+    }
+
+    <div class="detay-hero mb-4 d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-3">
+        <div>
+            <h2 class="mb-1 text-white">📋 Görüşme Detayları</h2>
+            <div class="text-white-50">Müşteri kartlarından seçim yaparak detayları açabilirsiniz.</div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <span class="detay-chip">Toplam: @Model.TotalCount</span>
+            <span class="detay-chip">Aktif: @Model.AktifCount</span>
+            <span class="detay-chip">Pasif: @Model.PasifCount</span>
+            <span class="detay-chip">Beklemede: @Model.BeklemedeCount</span>
+        </div>
+    </div>
+
+    <div class="card detay-filter-card mb-4">
+        <div class="card-body">
+            <form method="get" asp-controller="Detay" asp-action="Index" id="detayFilterForm">
+                <input type="hidden" name="page" value="1" />
+                <input type="hidden" name="pageSize" value="@pageSize" />
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Müşteri Ara</label>
+                        <input id="filterSearch" name="q" value="@Model.Q" type="text" class="form-control" placeholder="Firma, yetkili, telefon, teknoloji..." />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Excel Ay</label>
+                        <input id="exportMonth" type="month" class="form-control" />
+                    </div>
+
+                    <div class="col-md-3 d-grid">
+                        <button id="btnExportDetayMonth" type="button" class="btn btn-success">
+                            Bu Ay Excel İndir
+                        </button>
+                    </div>
+
+                    <div class="col-md-2 d-grid">
+                        <button type="submit" class="btn btn-primary">Ara</button>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Durum</label>
+                        <select id="filterDurum" name="durum" class="form-select auto-submit-filter">
+                            <option value="">Tümü</option>
+                            <option value="Aktif" selected="@(string.Equals(Model.Durum, "Aktif", StringComparison.OrdinalIgnoreCase))">Aktif</option>
+                            <option value="Pasif" selected="@(string.Equals(Model.Durum, "Pasif", StringComparison.OrdinalIgnoreCase))">Pasif</option>
+                            <option value="Beklemede" selected="@(string.Equals(Model.Durum, "Beklemede", StringComparison.OrdinalIgnoreCase))">Beklemede</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Teknoloji</label>
+                        <select id="filterTeknoloji" name="teknoloji" class="form-select auto-submit-filter">
+                            <option value="">Tümü</option>
+                            @foreach (var tech in Model.TeknolojiSecenekleri)
+                            {
+                                <option value="@tech" selected="@(string.Equals(Model.Teknoloji, tech, StringComparison.OrdinalIgnoreCase))">@tech</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Talep Sahibi</label>
+                        <select id="filterTalep" name="talepSahibi" class="form-select auto-submit-filter">
+                            <option value="">Tümü</option>
+                            @foreach (var talep in Model.TalepSahibiSecenekleri)
+                            {
+                                <option value="@talep" selected="@(string.Equals(Model.TalepSahibi, talep, StringComparison.OrdinalIgnoreCase))">@talep</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Tarih Aralığı</label>
+                        <div class="input-group">
+                            <input type="date" id="minDate" name="minDate" value="@Model.MinDate" class="form-control auto-submit-filter" />
+                            <input type="date" id="maxDate" name="maxDate" value="@Model.MaxDate" class="form-control auto-submit-filter" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Gösterilen</label>
+                        <div id="filteredCustomerCount" class="form-control bg-light">@(Model.TotalCount == 0 ? "0 kayıt" : $"{pageStart}-{pageEnd} / {Model.TotalCount} kayıt")</div>
+                    </div>
+
+                    <div class="col-md-3 d-grid">
+                        <a class="btn btn-outline-secondary" href="@Url.Action("Index", "Detay", new { page = 1, pageSize = pageSize })">Temizle</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card detay-list-card">
+        <div class="card-body">
+            <div id="musteriCards" class="row g-3">
+                @foreach (var m in musteriList)
+                {
+                    var sonDetay = sonDetaylar.ContainsKey(m.MusteriID) ? sonDetaylar[m.MusteriID] : null;
+                    var durum = (m.Durum ?? string.Empty).Trim();
+                    var durumCls = durum switch
+                    {
+                        "Aktif" => "bg-success",
+                        "Pasif" => "bg-danger",
+                        "Beklemede" => "bg-warning text-dark",
+                        _ => "bg-secondary"
+                    };
+                    var collapseId = $"musteriCollapse_{m.MusteriID}";
+                    var searchText = string.Join(' ', new[] { m.Firma, m.FirmaYetkilisi, m.Telefon, m.Teknoloji, m.TalepSahibi, m.Aciklama }
+                        .Where(x => !string.IsNullOrWhiteSpace(x)))
+                        .ToLowerInvariant();
+
+                    <div class="col-12 col-md-6 col-xl-4 musteri-card-col" data-id="@m.MusteriID">
+                        <div class="card musteri-card h-100" data-id="@m.MusteriID">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <div class="small text-muted fw-semibold">Müşteri #@m.MusteriID</div>
+                                        <div class="fw-bold fs-5">@m.Firma</div>
+                                    </div>
+                                    <span class="badge @durumCls">@(string.IsNullOrWhiteSpace(durum) ? "-" : durum)</span>
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-2 mt-3">
+                                    @if (!string.IsNullOrWhiteSpace(m.Teknoloji))
+                                    {
+                                        <span class="badge bg-info">@m.Teknoloji</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(m.TalepSahibi))
+                                    {
+                                        <span class="badge text-bg-light border">@m.TalepSahibi</span>
+                                    }
+                                    <span class="badge text-bg-light border">Kayıt: @(m.KayitTarihi?.ToString("dd.MM.yyyy") ?? "-")</span>
+                                </div>
+
+                                <div class="musteri-card-meta mt-3">
+                                    <div class="musteri-card-meta-item">
+                                        <div class="musteri-card-label">Yetkili</div>
+                                        <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(m.FirmaYetkilisi) ? "-" : m.FirmaYetkilisi)</div>
+                                    </div>
+                                    <div class="musteri-card-meta-item">
+                                        <div class="musteri-card-label">Telefon</div>
+                                        <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(m.Telefon) ? "-" : m.Telefon)</div>
+                                    </div>
+                                    <div class="musteri-card-meta-item">
+                                        <div class="musteri-card-label">Son Detay</div>
+                                        <div class="musteri-card-value">@(sonDetay == null ? "-" : sonDetay.Tarih.ToString("dd.MM.yyyy HH:mm"))</div>
+                                    </div>
+                                    <div class="musteri-card-meta-item">
+                                        <div class="musteri-card-label">Son Yorumu Ekleyen</div>
+                                        <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(sonDetay?.Kekleyen) ? "-" : sonDetay!.Kekleyen)</div>
+                                    </div>
+                                </div>
+
+                                <div class="collapse musteri-card-collapse" id="@collapseId">
+                                    <div class="musteri-card-meta">
+                                        <div class="musteri-card-meta-item">
+                                            <div class="musteri-card-label">Site</div>
+                                            <div class="musteri-card-value">
+                                                @if (!string.IsNullOrWhiteSpace(m.SiteUrl))
+                                                {
+                                                    <a href="@m.SiteUrl" target="_blank" class="text-decoration-none card-link-action">🔗 Siteyi Aç</a>
+                                                }
+                                                else
+                                                {
+                                                    <span>-</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="musteri-card-meta-item">
+                                            <div class="musteri-card-label">Açıklama</div>
+                                            <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(m.Aciklama) ? "-" : m.Aciklama)</div>
+                                        </div>
+                                        <div class="musteri-card-meta-item">
+                                            <div class="musteri-card-label">Son Yorum</div>
+                                            <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(sonDetay?.Aciklama) ? "-" : sonDetay!.Aciklama)</div>
+                                        </div>
+                                        <div class="musteri-card-meta-item">
+                                            <div class="musteri-card-label">Son İş / Görüşülen</div>
+                                            <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(sonDetay?.Gorusulen) ? "-" : sonDetay!.Gorusulen)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card-footer bg-white border-0 pt-0 pb-3 px-3">
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary flex-fill btn-open-detay" data-id="@m.MusteriID" data-firma="@m.Firma">Detayları Aç</button>
+                                    <button type="button" class="btn btn-sm btn-outline-warning edit-btn" data-id="@m.MusteriID">✏️</button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-btn" data-id="@m.MusteriID">❌</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (!musteriList.Any())
+                {
+                    <div class="col-12">
+                        <div class="alert alert-light border text-muted mb-0">Aradığınız kriterlere uygun müşteri bulunamadı.</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <nav class="mt-4" aria-label="Detaylar sayfalama">
+        <ul class="pagination pagination-sm flex-wrap mb-0">
+            <li class="page-item @(currentPage <= 1 ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("Index", "Detay", new { q = Model.Q, durum = Model.Durum, teknoloji = Model.Teknoloji, talepSahibi = Model.TalepSahibi, minDate = Model.MinDate, maxDate = Model.MaxDate, page = currentPage - 1, pageSize = pageSize })">Önceki</a>
+            </li>
+
+            @for (var i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+            {
+                <li class="page-item @(i == currentPage ? "active" : "")">
+                    <a class="page-link" href="@Url.Action("Index", "Detay", new { q = Model.Q, durum = Model.Durum, teknoloji = Model.Teknoloji, talepSahibi = Model.TalepSahibi, minDate = Model.MinDate, maxDate = Model.MaxDate, page = i, pageSize = pageSize })">@i</a>
+                </li>
+            }
+
+            <li class="page-item disabled">
+                <span class="page-link">Sayfa @currentPage / @totalPages</span>
+            </li>
+
+            <li class="page-item @(currentPage >= totalPages ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("Index", "Detay", new { q = Model.Q, durum = Model.Durum, teknoloji = Model.Teknoloji, talepSahibi = Model.TalepSahibi, minDate = Model.MinDate, maxDate = Model.MaxDate, page = currentPage + 1, pageSize = pageSize })">Sonraki</a>
+            </li>
+        </ul>
+    </nav>
+
+    @if (Model.SelectedMusteriId.HasValue && Model.SelectedMusteriId.Value > 0)
+    {
+        <div id="selectedInfo" class="alert selected-info mt-4">
+            <strong>Seçilen Müşteri:</strong> @Model.SelectedMusteriAdi
+        </div>
+
+        @await Html.PartialAsync("_DetayListesi", Model.SelectedMusteriDetaylar)
+    }
+</div>
+
+
+<div class="modal fade" id="editMusteriModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title">✏️ Müşteri Düzenle</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form id="editMusteriForm">
+                <div class="modal-body">
+
+                    <input type="hidden" id="editMusteriId" name="MusteriID" />
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+                            <label class="form-label">Firma Adı *</label>
+                            <input type="text" id="editFirma" name="Firma" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Firma Yetkilisi</label>
+                            <input type="text" id="editFirmaYetkilisi" name="FirmaYetkilisi" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Telefon</label>
+                            <input type="text" id="editTelefon" name="Telefon" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Site URL</label>
+                            <input type="text" id="editSiteUrl" name="SiteUrl" class="form-control" />
+                        </div>
+
+
+                        <div class="col-md-6">
+                            <label class="form-label">Teknoloji</label>
+                            <input type="text" id="editTeknoloji" name="Teknoloji" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Durum *</label>
+                            <select id="editDurum" name="Durum" class="form-select" required>
+                                <option value="">Seçiniz</option>
+                                <option value="Aktif">Aktif</option>
+                                <option value="Pasif">Pasif</option>
+                                <option value="Beklemede">Beklemede</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Talep Sahibi</label>
+                            <input type="text" id="editTalepSahibi" name="TalepSahibi" class="form-control" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Açıklama</label>
+                            <textarea id="editAciklama" name="Aciklama" class="form-control" rows="4"></textarea>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-warning">Güncelle</button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+
+
+
+
+@section Scripts {
+    <script>
+
+        $(document).ready(function () {
+            const selectedMusteriId = @((selectedMusteriId ?? 0));
+            let activeMusteriId = 0;
+
+            function showCardSelection(id) {
+                $('.musteri-card').removeClass('musteri-card-selected');
+                $('.musteri-card-collapse').each(function () {
+                    bootstrap.Collapse.getOrCreateInstance(this, { toggle: false }).hide();
+                });
+
+                const selectedCard = $(`.musteri-card[data-id="${id}"]`);
+                selectedCard.addClass('musteri-card-selected');
+
+                const collapseEl = document.getElementById(`musteriCollapse_${id}`);
+                if (collapseEl) {
+                    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
+                }
+            }
+
+            function loadDetaylar(id) {
+                if (!id) return;
+
+                const url = new URL(window.location.href);
+                url.searchParams.set('musteriId', id);
+                url.searchParams.set('page', '@currentPage');
+                window.location.href = url.toString();
+            }
+
+            if (!$('#exportMonth').val()) {
+                const now = new Date();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                $('#exportMonth').val(`${now.getFullYear()}-${mm}`);
+            }
+
+            $('#btnExportDetayMonth').on('click', function () {
+                const month = String($('#exportMonth').val() ?? '').trim();
+                if (!month) {
+                    alert('Lütfen bir ay seçin.');
+                    return;
+                }
+
+                window.location.href = `/Detay/ExportExcelByMonth?month=${encodeURIComponent(month)}`;
+            });
+
+            $('.auto-submit-filter').on('change', function () {
+                $('#detayFilterForm').trigger('submit');
+            });
+
+            $(document).on('click', '.musteri-card', function (e) {
+                if ($(e.target).closest('button, a').length) return;
+
+                const card = $(this);
+                loadDetaylar(Number(card.data('id')));
+            });
+
+            $(document).on('click', '.btn-open-detay', function (e) {
+                e.stopPropagation();
+                loadDetaylar(Number($(this).data('id')));
+            });
+
+            if (selectedMusteriId > 0) {
+                showCardSelection(selectedMusteriId);
+            }
+
+            $(document).on('click', '.edit-btn', function (e) {
+                e.stopPropagation();
+                const id = Number($(this).data('id'));
+
+                fetch(`/Detay/GetMusteri?id=${id}`)
+                    .then(r => r.json())
+                    .then(m => {
+                        $('#editMusteriId').val(m.musteriID);
+                        $('#editFirma').val(m.firma);
+                        $('#editFirmaYetkilisi').val(m.firmaYetkilisi);
+                        $('#editTelefon').val(m.telefon);
+                        $('#editSiteUrl').val(m.siteUrl);
+                        $('#editTeknoloji').val(m.teknoloji);
+                        $('#editDurum').val(m.durum);
+                        $('#editTalepSahibi').val(m.talepSahibi);
+                        $('#editAciklama').val(m.aciklama);
+
+                        $('#editMusteriModal').modal('show');
+                    });
+            });
+
+            $('#editMusteriForm').submit(function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+
+                fetch('/Detay/UpdateMusteri', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(d => {
+                    alert(d.message);
+                    if (d.success) location.reload();
+                });
+            });
+
+            $(document).on('click', '.delete-btn', function (e) {
+                e.stopPropagation();
+                const cardCol = $(this).closest('.musteri-card-col');
+                const id = Number($(this).data('id'));
+
+                if (confirm("Silinsin mi?")) {
+                    fetch(`/Detay/DeleteMusteri/${id}`, { method: 'DELETE' })
+                        .then(r => r.json())
+                        .then(d => {
+                            alert(d.message);
+                            if (d.success) {
+                                window.location.reload();
+                            }
+                        });
+                }
+            });
+
+        });
+
+    </script>
+}
+

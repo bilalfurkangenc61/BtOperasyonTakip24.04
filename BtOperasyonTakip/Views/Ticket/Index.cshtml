@@ -1,0 +1,792 @@
+﻿@using Microsoft.AspNetCore.Antiforgery
+@inject IAntiforgery Antiforgery
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Ticketlar";
+    var antiForgeryToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+    var toplamTicket = Model?.Count ?? 0;
+    var acikSayisi = Model?.Count(t => (t.Durum ?? string.Empty).Contains("Bekleniyor", StringComparison.OrdinalIgnoreCase)) ?? 0;
+    var tamamlananSayisi = Model?.Count(t => string.Equals((t.Durum ?? string.Empty).Trim(), "Musteri Kaydedildi", StringComparison.OrdinalIgnoreCase)) ?? 0;
+    var reddedilenSayisi = Model?.Count(t => string.Equals((t.Durum ?? string.Empty).Trim(), "Reddedildi", StringComparison.OrdinalIgnoreCase)) ?? 0;
+}
+
+@model List<BtOperasyonTakip.Models.Ticket>
+
+<style>
+    .ticket-page {
+        max-width: 1600px;
+    }
+
+    .ticket-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%);
+        color: #fff;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 1rem 2rem rgba(29, 78, 216, 0.15);
+    }
+
+    .ticket-hero .muted-light {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .ticket-stat {
+        min-width: 160px;
+        padding: 0.85rem 1rem;
+        border-radius: 0.9rem;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .ticket-section {
+        border: 0;
+        border-radius: 1rem;
+        box-shadow: 0 0.65rem 1.5rem rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+    .ticket-section .card-header,
+    .ticket-section .card-body {
+        padding: 1.25rem;
+    }
+
+    .ticket-section .card-header {
+        background: #fff;
+        border-bottom: 1px solid #e9eef5;
+    }
+
+    .ticket-filter-card {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .ticket-table-card {
+        background: #fff;
+    }
+
+    .ticket-table {
+        --bs-table-hover-bg: rgba(37, 99, 235, 0.04);
+        margin-bottom: 0;
+    }
+
+    .ticket-table thead th {
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        background: #f8fafc;
+        z-index: 1;
+        border-bottom-width: 1px;
+    }
+
+    .ticket-table tbody td {
+        vertical-align: middle;
+    }
+
+    .ticket-badge {
+        border-radius: 999px;
+        padding: 0.5rem 0.75rem;
+        font-weight: 600;
+        font-size: 0.78rem;
+    }
+
+    .ticket-table .view-detail-btn {
+        border-radius: 0.7rem;
+    }
+
+    .ticket-mini-label {
+        font-size: 0.78rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .ticket-mini-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .ticket-hero .ticket-mini-label {
+        color: rgba(255, 255, 255, 0.78);
+    }
+
+    .ticket-hero .ticket-mini-value {
+        color: #fff;
+    }
+
+    .ticket-search-input,
+    .ticket-filter-card .form-select,
+    .ticket-filter-card .btn,
+    .ticket-filter-card .form-control {
+        border-radius: 0.8rem;
+    }
+
+    @@media (max-width: 991.98px) {
+        .ticket-table thead th {
+            position: static;
+        }
+    }
+</style>
+
+<div class="container-fluid ticket-page py-3">
+    <div class="ticket-hero mb-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div>
+                <h2 class="page-title mb-1">🧾 Ticketlar</h2>
+                <div class="muted-light">Mevcut liste ve süreç adımları tek ekranda izlenir.</div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <div class="ticket-stat">
+                    <div class="ticket-mini-label">Toplam</div>
+                    <div class="ticket-mini-value">@toplamTicket</div>
+                </div>
+                <div class="ticket-stat">
+                    <div class="ticket-mini-label">Bekleyen</div>
+                    <div class="ticket-mini-value">@acikSayisi</div>
+                </div>
+                <div class="ticket-stat">
+                    <div class="ticket-mini-label">Kaydedilen</div>
+                    <div class="ticket-mini-value">@tamamlananSayisi</div>
+                </div>
+                <div class="ticket-stat">
+                    <div class="ticket-mini-label">Reddedilen</div>
+                    <div class="ticket-mini-value">@reddedilenSayisi</div>
+                </div>
+
+                @if (User.IsInRole("Saha") || User.IsInRole("KurumsalSaha"))
+                {
+                    <a asp-action="Create" class="btn btn-light fw-semibold ms-lg-2">
+                        <i class="bi bi-plus-circle"></i> Yeni Ticket
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="card ticket-section ticket-filter-card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="fw-semibold">Filtreler</div>
+                <div class="text-muted small">Firma, kişi veya kategori bazlı hızlı arama yapın.</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <form asp-action="Index" method="get" class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label small text-muted mb-1">Arama</label>
+                    <input type="text" name="searchFirma" class="form-control ticket-search-input"
+                           placeholder="🔍 Firma adı, yazılımcı adı ile ara..."
+                           value="@ViewBag.SearchFirma" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small text-muted mb-1">Kategori</label>
+                    <select name="kategori" class="form-select">
+                        <option value="">Kategoriye göre filtrele</option>
+                        @foreach (var kategori in (IEnumerable<string>)ViewBag.Kategoriler ?? new List<string>())
+                        {
+                            var isSelected = ((ViewBag.SelectedKategori ?? "").ToString().Trim().ToLowerInvariant() == (kategori ?? "").Trim().ToLowerInvariant());
+                            <option value="@kategori" selected="@(isSelected ? "selected" : null)">@kategori</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Ara
+                    </button>
+                    @if (!string.IsNullOrWhiteSpace(ViewBag.SearchFirma) || !string.IsNullOrWhiteSpace(ViewBag.SelectedKategori))
+                    {
+                        <a asp-action="Index" class="btn btn-secondary w-100 mt-2">
+                            <i class="bi bi-arrow-counterclockwise"></i> Temizle
+                        </a>
+                    }
+                </div>
+
+
+            </form>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Henüz ticket bulunmamaktadır.
+        </div>
+    }
+    else
+    {
+        <div class="card ticket-section ticket-table-card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <div class="fw-semibold">Ticket Listesi</div>
+                    <div class="text-muted small">Detay, durum ve süreç bilgileri tek tabloda gösterilir.</div>
+                </div>
+            </div>
+            <div class="table-responsive">
+            <table class="table table-hover table-striped ticket-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Firma</th>
+                        <th>Kategori</th>
+                        <th>Müşteri Web Sitesi</th>
+                        <th>Yazılımcı</th>
+                        <th>Atanan Operasyon</th>
+                        <th>📧 Mail</th>
+                        <th>İrtibat</th>
+                        <th>Teknoloji</th>
+                        <th>Durum</th>
+                        <th>Uyum Kararı Veren</th>
+                        <th>Oluşturan</th>
+                        <th>Tarih</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ticket in Model)
+                    {
+                        var durum = (ticket.Durum ?? string.Empty).Trim();
+                        var durumBadgeClass = durum switch
+                        {
+                            "Reddedildi" => "bg-danger",
+                            "Musteri Kaydedildi" => "bg-success",
+                            "Entegrasyon Bekleniyor" => "bg-primary",
+                            "Eksik Evrak Bekleniyor" => "bg-warning text-dark",
+                            "Saha Canli Bekleniyor" => "bg-info text-dark",
+                            _ => "bg-secondary"
+                        };
+
+                        <tr>
+                            <td><strong>@ticket.Id</strong></td>
+                            <td>@ticket.FirmaAdi</td>
+                            <td>@(string.IsNullOrWhiteSpace(ticket.Kategori) ? "-" : ticket.Kategori)</td>
+                            <td>
+                                <a href="@ticket.MusteriWebSitesi" target="_blank" class="text-decoration-none">
+                                    @(ticket.MusteriWebSitesi.Length > 30 ? ticket.MusteriWebSitesi.Substring(0, 30) + "..." : ticket.MusteriWebSitesi)
+                                </a>
+                            </td>
+                            <td>@ticket.YazilimciAdi @ticket.YazilimciSoyadi</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(ticket.AtananOperasyonKullaniciAdi))
+                                {
+                                    <span class="badge bg-primary">@ticket.AtananOperasyonKullaniciAdi</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                <a href="mailto:@ticket.Mail" class="text-decoration-none">
+                                    <i class="bi bi-envelope"></i> @(ticket.Mail.Length > 25 ? ticket.Mail.Substring(0, 25) + "..." : ticket.Mail)
+                                </a>
+                            </td>
+                            <td>@ticket.IrtibatNumarasi</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(ticket.TeknolojiBilgisi))
+                                {
+                                    <span class="badge bg-info">@ticket.TeknolojiBilgisi</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-light text-dark">Seçilmedi</span>
+                                }
+                            </td>
+                            <td><span class="badge ticket-badge @durumBadgeClass">@ticket.Durum</span></td>
+                            <td>@ticket.UyumOnaylayanKullaniciAdi</td>
+                            <td>@ticket.OlusturanKullaniciAdi</td>
+                            <td>@ticket.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-info view-detail-btn"
+                                        data-ticket-id="@ticket.Id"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#detailModal"
+                                        data-status="@ticket.Durum"
+                                        data-olusturan="@ticket.OlusturanKullaniciAdi"
+                                        data-olusturma-tarih="@ticket.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")"
+                                        data-op1-entegre="@((ticket.EntegreOlabilirMi.HasValue) ? (ticket.EntegreOlabilirMi.Value ? "Evet" : "Hayır") : "")"
+                                        data-op1-tarih="@(ticket.Operasyon1OnayTarihi?.ToString("dd.MM.yyyy HH:mm") ?? "")"
+                                        data-op1-not="@ticket.EntegrasyonNotu"
+                                        data-op1-karar-veren="@ticket.OnaylayanKullaniciAdi"
+                                        data-uyum-onaylayan="@ticket.UyumOnaylayanKullaniciAdi"
+                                        data-uyum-tarih="@(ticket.UyumOnayTarihi?.ToString("dd.MM.yyyy HH:mm") ?? "")"
+                                        data-uyum-aciklama="@ticket.UyumKararAciklamasi"
+                                        data-op2-mail="@((ticket.MailGonderildiMi.HasValue) ? (ticket.MailGonderildiMi.Value ? "Evet" : "Hayır") : "")"
+                                        data-op2-tarih="@(ticket.Operasyon2OnayTarihi?.ToString("dd.MM.yyyy HH:mm") ?? "")"
+                                         data-op2-not="@ticket.MailNotu"
+                                        data-saha-tarih="@(ticket.CanliAcildiTarihi?.ToString("dd.MM.yyyy HH:mm") ?? "")"
+                                         data-saha-not="@ticket.CanliNotu"
+                                        data-odeme-turleri="@(ticket.OdemeTurleri ?? "-")"
+                                        data-odeme-yontemleri="@(ticket.OdemeYontemleri ?? "-")"
+                                         data-websitesi-tipi="@(ticket.WebSitesiTipi ?? "-")"
+                                         data-atanan-id="@ticket.AtananOperasyonUserId">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📋 Ticket Detayı #<span id="modalTicketId"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div><strong>Durum:</strong> <span id="modalStatus"></span></div>
+                    <div><strong>Oluşturan:</strong> <span id="modalOlusturan"></span></div>
+                    <div><strong>Oluşturma Tarihi:</strong> <span id="modalOlusturmaTarih"></span></div>
+                </div>
+                <hr />
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="fw-bold">Müşteri Seçimleri:</label>
+                        <div class="bg-light p-2 rounded">
+                            <div><strong>Ödeme Türleri:</strong> <span id="modalOdemeTurleri"></span></div>
+                            <div><strong>Ödeme Yöntemleri:</strong> <span id="modalOdemeYontemleri"></span></div>
+                            <div><strong>Web Sitesi Tipi:</strong> <span id="modalWebSitesiTipi"></span></div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="fw-bold">1) Operasyon 1:</label>
+                        <div class="bg-light p-2 rounded">
+                            <div><strong>Karar:</strong> <span id="modalOp1Karar"></span></div>
+                            <div><strong>Karar Veren:</strong> <span id="modalOp1KararVeren"></span></div>
+                            <div><strong>Tarih:</strong> <span id="modalOp1Tarih"></span></div>
+                            <div><strong>Not:</strong> <span id="modalOp1Not"></span></div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="fw-bold">2) Uyum:</label>
+                        <div class="bg-light p-2 rounded">
+                            <div><strong>Karar Veren:</strong> <span id="modalUyumOnaylayan"></span></div>
+                            <div><strong>Tarih:</strong> <span id="modalUyumTarih"></span></div>
+                            <div><strong>Açıklama:</strong> <span id="modalUyumAciklama"></span></div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="fw-bold">3) Operasyon 2:</label>
+                        <div class="bg-light p-2 rounded">
+                            <div><strong>Mail Gönderildi Mi:</strong> <span id="modalOp2Mail"></span></div>
+                            <div><strong>Tarih:</strong> <span id="modalOp2Tarih"></span></div>
+                            <div><strong>Not:</strong> <span id="modalOp2Not"></span></div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="fw-bold">4) Saha:</label>
+                        <div class="bg-light p-2 rounded">
+                            <div><strong>Canlı Açıldı Tarihi:</strong> <span id="modalSahaTarih"></span></div>
+                            <div><strong>Not:</strong> <span id="modalSahaNot"></span></div>
+                        </div>
+                    </div>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        var operasyonUsers = ViewBag.OperasyonUsers as IEnumerable<dynamic> ?? new List<dynamic>();
+                        <hr />
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="fw-bold">Atamayı Değiştir (Admin)</label>
+                            </div>
+                            <div class="col-md-5">
+                                <select id="adminOperasyonUserSelect" class="form-select form-select-sm">
+                                    <option value="">Operasyon seçiniz</option>
+                                    @foreach (var op in operasyonUsers)
+                                    {
+                                        <option value="@op.Id">@op.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" id="adminOperasyonNeden" class="form-control form-control-sm" placeholder="Değişiklik nedeni" />
+                            </div>
+                            <div class="col-md-2 d-grid">
+                                <button type="button" class="btn btn-sm btn-warning" id="btnAdminChangeAssignment">Atamayı Güncelle</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                @if (User.IsInRole("Operasyon"))
+                {
+                    <button type="button" class="btn btn-success d-none" id="btnOp1Onay">Operasyon 1 - Entegre Olur</button>
+                    <button type="button" class="btn btn-danger d-none" id="btnOp1Red">Operasyon 1 - Entegre Olmaz</button>
+
+                    <button type="button" class="btn btn-success d-none" id="btnOp2MailEvet">Operasyon 2 - Mail Gönderildi</button>
+                    <button type="button" class="btn btn-warning d-none" id="btnOp2MailHayir">Operasyon 2 - Mail Gönderilmedi</button>
+                }
+                @if (User.IsInRole("Operasyon") || User.IsInRole("Admin"))
+                {
+                    <button type="button" class="btn btn-success d-none" id="btnEntegrasyonTamamlandi">Entegrasyon Tamamlandı</button>
+                }
+                @if (User.IsInRole("Saha") || User.IsInRole("KurumsalSaha") || User.IsInRole("Admin"))
+                {
+                    <button type="button" class="btn btn-success d-none" id="btnSahaCanliOnay">Canlı Açılışı Onayla</button>
+                    <button type="button" class="btn btn-danger d-none" id="btnSahaCanliIptal">İptal Et</button>
+                    <button type="button" class="btn btn-primary d-none" id="btnSahaEksikEvrakTamamlandi">Eksik Evrakı Ekledim</button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="sahaCanliModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Canlı Açılış Onayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="sahaCanliOrtamId" class="form-label">Canlı Ortam ID</label>
+                    <input type="text"
+                           id="sahaCanliOrtamId"
+                           class="form-control"
+                           inputmode="numeric"
+                           autocomplete="off"
+                           maxlength="20"
+                           placeholder="Sadece rakam girin" />
+                    <div class="form-text">Bu alana sadece rakam girilebilir.</div>
+                </div>
+                <div>
+                    <label for="sahaCanliNot" class="form-label">Not</label>
+                    <textarea id="sahaCanliNot" class="form-control" rows="3" maxlength="250" placeholder="Opsiyonel"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <button type="button" class="btn btn-success" id="btnSahaCanliModalKaydet">Onayla</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const __requestVerificationToken = "@antiForgeryToken";
+        const __sahaCanliModalElement = document.getElementById("sahaCanliModal");
+        const __sahaCanliModal = __sahaCanliModalElement ? new bootstrap.Modal(__sahaCanliModalElement) : null;
+
+        $(document).on("click", ".view-detail-btn", function () {
+            const $btn = $(this);
+
+            const ticketId = $btn.data("ticket-id") || "";
+            $("#modalTicketId").text(ticketId);
+
+            window.__currentTicketId = ticketId;
+            window.__currentTicketStatus = $btn.data("status") || "";
+
+            $("#modalStatus").text($btn.data("status") || "-");
+            $("#modalOlusturan").text($btn.data("olusturan") || "-");
+            $("#modalOlusturmaTarih").text($btn.data("olusturma-tarih") || "-");
+
+            $("#modalOp1Karar").text($btn.data("op1-entegre") || "-");
+            $("#modalOp1KararVeren").text($btn.data("op1-karar-veren") || "-");
+            $("#modalOp1Tarih").text($btn.data("op1-tarih") || "-");
+            $("#modalOp1Not").text($btn.data("op1-not") || "-");
+
+            $("#modalUyumOnaylayan").text($btn.data("uyum-onaylayan") || "-");
+            $("#modalUyumTarih").text($btn.data("uyum-tarih") || "-");
+            $("#modalUyumAciklama").text($btn.data("uyum-aciklama") || "-");
+
+            $("#modalOp2Mail").text($btn.data("op2-mail") || "-");
+            $("#modalOp2Tarih").text($btn.data("op2-tarih") || "-");
+            $("#modalOp2Not").text($btn.data("op2-not") || "-");
+
+            $("#modalSahaTarih").text($btn.data("saha-tarih") || "-");
+            $("#modalSahaNot").text($btn.data("saha-not") || "-");
+
+            $("#modalOdemeTurleri").text($btn.data("odeme-turleri") || "-");
+            $("#modalOdemeYontemleri").text($btn.data("odeme-yontemleri") || "-");
+            $("#modalWebSitesiTipi").text($btn.data("websitesi-tipi") || "-");
+
+            $("#btnOp1Onay,#btnOp1Red,#btnOp2MailEvet,#btnOp2MailHayir,#btnEntegrasyonTamamlandi,#btnSahaCanliOnay,#btnSahaCanliIptal,#btnSahaEksikEvrakTamamlandi").addClass("d-none");
+            const status = window.__currentTicketStatus;
+            if (status === "Operasyon 1 Onay Bekleniyor") {
+                $("#btnOp1Onay,#btnOp1Red").removeClass("d-none");
+            } else if (status === "Operasyon 2 Onay Bekleniyor") {
+                $("#btnOp2MailEvet,#btnOp2MailHayir").removeClass("d-none");
+            } else if (status === "Entegrasyon Bekleniyor") {
+                $("#btnEntegrasyonTamamlandi").removeClass("d-none");
+            } else if (status === "Saha Canli Bekleniyor") {
+                $("#btnSahaCanliOnay,#btnSahaCanliIptal").removeClass("d-none");
+            } else if (status === "Eksik Evrak Bekleniyor") {
+                $("#btnSahaEksikEvrakTamamlandi").removeClass("d-none");
+            }
+
+            const atananId = $btn.data("atanan-id") || "";
+            if (atananId) {
+                $("#adminOperasyonUserSelect").val(atananId.toString());
+            } else {
+                $("#adminOperasyonUserSelect").val("");
+            }
+        });
+
+        $(document).on("click", "#btnAdminChangeAssignment", function () {
+            const ticketId = parseInt(window.__currentTicketId || "0");
+            const yeniUserId = parseInt($("#adminOperasyonUserSelect").val() || "0");
+            const neden = $("#adminOperasyonNeden").val().trim();
+
+            if (!ticketId || !yeniUserId) {
+                alert("Ticket veya yeni operasyon kullanıcısı seçilmedi.");
+                return;
+            }
+
+            if (!neden) {
+                alert("Değişiklik nedeni zorunludur.");
+                return;
+            }
+
+            $.ajax({
+                url: "/Ticket/ChangeAssignment",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ TicketId: ticketId, YeniOperasyonUserId: yeniUserId, Neden: neden }),
+                success: function (res) {
+                    alert(res.message || "İşlem tamamlandı.");
+                    if (res.success) {
+                        location.reload();
+                    }
+                },
+                error: function () {
+                    alert("Atama değişikliği sırasında bir hata oluştu.");
+                }
+            });
+        });
+
+        $(document).on("click", "#btnOp1Onay", function () {
+            const id = parseInt(window.__currentTicketId || "0");
+            if (!id) return;
+            const not = prompt("Operasyon 1 notu (opsiyonel):", "") || null;
+
+            $.ajax({
+                url: "/Ticket/Operasyon1Decide",
+                type: "POST",
+                headers: { "RequestVerificationToken": __requestVerificationToken },
+                contentType: "application/json",
+                data: JSON.stringify({ Id: id, EntegreOlabilirMi: true, Not: not }),
+                success: function (res) {
+                    alert(res.message || "İşlem tamamlandı.");
+                    if (res.success) {
+                        location.reload();
+                    }
+                },
+                error: function () {
+                    alert("Operasyon 1 kararı sırasında bir hata oluştu.");
+                }
+            });
+        });
+
+        $(document).on("click", "#btnOp1Red", function () {
+            const id = parseInt(window.__currentTicketId || "0");
+            if (!id) return;
+            const not = prompt("Operasyon 1 ret notu (zorunlu):", "");
+            if (!not || !not.trim()) {
+                alert("Ret notu zorunludur.");
+                return;
+            }
+
+            $.ajax({
+                url: "/Ticket/Operasyon1Decide",
+                type: "POST",
+                headers: { "RequestVerificationToken": __requestVerificationToken },
+                contentType: "application/json",
+                data: JSON.stringify({ Id: id, EntegreOlabilirMi: false, Not: not }),
+                success: function (res) {
+                    alert(res.message || "İşlem tamamlandı.");
+                    if (res.success) {
+                        location.reload();
+                    }
+                },
+                error: function () {
+                    alert("Operasyon 1 kararı sırasında bir hata oluştu.");
+                }
+            });
+        });
+
+        $(document).on("click", "#btnOp2MailEvet", function () {
+            const id = parseInt(window.__currentTicketId || "0");
+            if (!id) return;
+            const not = prompt("Operasyon 2 notu (opsiyonel):", "") || null;
+
+            $.ajax({
+                url: "/Ticket/Operasyon2Decide",
+                type: "POST",
+                headers: { "RequestVerificationToken": __requestVerificationToken },
+                contentType: "application/json",
+                data: JSON.stringify({ Id: id, MailGonderildiMi: true, Not: not }),
+                success: function (res) {
+                    alert(res.message || "İşlem tamamlandı.");
+                    if (res.success) {
+                        location.reload();
+                    }
+                },
+                error: function () {
+                    alert("Operasyon 2 kararı sırasında bir hata oluştu.");
+                }
+            });
+        });
+
+        $(document).on("click", "#btnOp2MailHayir", function () {
+            const id = parseInt(window.__currentTicketId || "0");
+            if (!id) return;
+            const not = prompt("Operasyon 2 notu (opsiyonel):", "") || null;
+
+            $.ajax({
+                url: "/Ticket/Operasyon2Decide",
+                type: "POST",
+                headers: { "RequestVerificationToken": __requestVerificationToken },
+                contentType: "application/json",
+                data: JSON.stringify({ Id: id, MailGonderildiMi: false, Not: not }),
+                success: function (res) {
+                    alert(res.message || "İşlem tamamlandı.");
+                    if (res.success) {
+                        location.reload();
+                    }
+                },
+                error: function () {
+                    alert("Operasyon 2 kararı sırasında bir hata oluştu.");
+                }
+            });
+        });
+
+        $(document).on("click", "#btnEntegrasyonTamamlandi", function () {
+            const id = parseInt(window.__currentTicketId || "0");
+            if (!id) return;
+
+            if (!confirm("Entegrasyon tamamlandı mı? Ticket Saha Canli Bekleniyor durumuna alınacaktır.")) {
+                return;
+            }
+
+            $.ajax({
+                url: "/Ticket/EntegrasyonTamamlandi",
+                type: "POST",
+                headers: { "RequestVerificationToken": __requestVerificationToken },
+                contentType: "application/json",
+                data: JSON.stringify({ Id: id }),
+                success: function (res) {
+                    alert(res.message || "İşlem tamamlandı.");
+                    if (res.success) {
+                        location.reload();
+                    }
+                },
+                error: function () {
+                    alert("Entegrasyon tamamlama işlemi sırasında bir hata oluştu.");
+                }
+            });
+        });
+
+        $(document).on("click", "#btnSahaCanliOnay", function () {
+            const id = parseInt(window.__currentTicketId || "0");
+            if (!id) return;
+
+            $("#sahaCanliOrtamId").val("");
+            $("#sahaCanliNot").val("");
+            __sahaCanliModal?.show();
+        });
+
+        $(document).on("input", "#sahaCanliOrtamId", function () {
+            this.value = (this.value || "").replace(/\D/g, "");
+        });
+
+        $(document).on("click", "#btnSahaCanliModalKaydet", function () {
+            const id = parseInt(window.__currentTicketId || "0");
+            if (!id) return;
+
+            const canliOrtamId = ($("#sahaCanliOrtamId").val() || "").toString().trim();
+            if (!canliOrtamId) {
+                alert("Canlı ortam ID zorunludur.");
+                $("#sahaCanliOrtamId").focus();
+                return;
+            }
+
+            if (!/^\d+$/.test(canliOrtamId)) {
+                alert("Canlı ortam ID sadece rakamlardan oluşmalıdır.");
+                $("#sahaCanliOrtamId").focus();
+                return;
+            }
+
+            const notValue = ($("#sahaCanliNot").val() || "").toString().trim();
+            const not = notValue ? notValue : null;
+
+            $.ajax({
+                url: "/Ticket/SahaCanliAcildi",
+                type: "POST",
+                headers: { "RequestVerificationToken": __requestVerificationToken },
+                contentType: "application/json",
+                data: JSON.stringify({ Id: id, CanliOrtamId: canliOrtamId, Not: not }),
+                success: function (res) {
+                    alert(res.message || "İşlem tamamlandı.");
+                    if (res.success) {
+                        __sahaCanliModal?.hide();
+                        location.reload();
+                    }
+                },
+                error: function () {
+                    alert("Canlı açılış onayı sırasında bir hata oluştu.");
+                }
+            });
+        });
+
+        $(document).on("click", "#btnSahaCanliIptal", function () {
+            const id = parseInt(window.__currentTicketId || "0");
+            if (!id) return;
+
+            const not = prompt("İptal nedeni zorunludur:", "");
+            if (!not || !not.trim()) {
+                alert("İptal nedeni zorunludur.");
+                return;
+            }
+
+            $.ajax({
+                url: "/Ticket/SahaReddet",
+                type: "POST",
+                headers: { "RequestVerificationToken": __requestVerificationToken },
+                contentType: "application/json",
+                data: JSON.stringify({ Id: id, Not: not.trim() }),
+                success: function (res) {
+                    alert(res.message || "İşlem tamamlandı.");
+                    if (res.success) {
+                        location.reload();
+                    }
+                },
+                error: function () {
+                    alert("İptal işlemi sırasında bir hata oluştu.");
+                }
+            });
+        });
+
+        $(document).on("click", "#btnSahaEksikEvrakTamamlandi", function () {
+            const id = parseInt(window.__currentTicketId || "0");
+            if (!id) return;
+
+            if (!confirm("Eksik evrakın tamamlandığını onaylıyor musunuz? Ticket yeniden uyum onayına gönderilecektir.")) {
+                return;
+            }
+
+            $.ajax({
+                url: "/Ticket/SahaEksikEvrakTamamlandi",
+                type: "POST",
+                headers: { "RequestVerificationToken": __requestVerificationToken },
+                contentType: "application/json",
+                data: JSON.stringify({ Id: id }),
+                success: function (res) {
+                    alert(res.message || "İşlem tamamlandı.");
+                    if (res.success) {
+                        location.reload();
+                    }
+                },
+                error: function () {
+                    alert("Eksik evrak tamamlama işlemi sırasında bir hata oluştu.");
+                }
+            });
+        });
+    </script>
+}

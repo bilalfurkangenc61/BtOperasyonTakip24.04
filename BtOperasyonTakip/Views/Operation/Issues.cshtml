@@ -1,0 +1,45 @@
+﻿@model IEnumerable<BtOperasyonTakip.Models.Issue>
+@{
+    ViewData["Title"] = "Saha Hataları - Operasyon";
+}
+
+<div class="container mt-5">
+    <h1>Saha Hataları (Operasyon)</h1>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Başlık</th>
+                <th>Açıklama</th>
+                <th>Raporlayan</th>
+                <th>Durum</th>
+                <th>Tarih</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Any())
+            {
+                @foreach (var issue in Model)
+                {
+                    <tr>
+                        <td>@issue.Id</td>
+                        <td><strong>@issue.Title</strong></td>
+                        <td>@issue.Description</td>
+                        <td>@issue.Reporter</td>
+                        <td>
+                            <span class="badge bg-warning text-dark">@issue.Status</span>
+                        </td>
+                        <td>@issue.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="6" class="text-center text-muted">Henüz hata raporu yok.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

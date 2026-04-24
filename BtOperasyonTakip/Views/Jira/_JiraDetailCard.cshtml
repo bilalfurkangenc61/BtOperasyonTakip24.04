@@ -1,0 +1,354 @@
+@model BtOperasyonTakip.Models.JiraTask
+@{
+    var kullaniciList = ViewBag.KullaniciSecenekleri as List<string> ?? new List<string>();
+    var durumClass = (Model.Durum ?? string.Empty).Trim() switch
+    {
+        "Beklemede" => "jira-status jira-status-waiting",
+        "Aktif" => "jira-status jira-status-active",
+        "Tamamlandı" => "jira-status jira-status-done",
+        _ => "jira-status jira-status-default"
+    };
+}
+
+<style>
+    .jira-detail-card {
+        border: 1px solid #dfe7f3;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 18px 32px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+    .jira-detail-topbar {
+        height: 4px;
+        background: linear-gradient(90deg, #0052cc 0%, #4c9aff 100%);
+    }
+
+    .jira-detail-card .card-header {
+        padding: 1rem 1.2rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border-bottom: 1px solid #e7edf6;
+    }
+
+    .jira-issue-key {
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: #0052cc;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 0.3rem;
+    }
+
+    .jira-issue-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #172b4d;
+        line-height: 1.35;
+    }
+
+    .jira-issue-subline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        margin-top: 0.65rem;
+        color: #6b778c;
+        font-size: 0.85rem;
+    }
+
+    .jira-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 0.45rem 0.8rem;
+        font-size: 0.76rem;
+        font-weight: 700;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .jira-status-waiting {
+        background: #fff7d6;
+        color: #8f5b00;
+        border-color: #ffe28a;
+    }
+
+    .jira-status-active {
+        background: #deebff;
+        color: #0747a6;
+        border-color: #b3d4ff;
+    }
+
+    .jira-status-done {
+        background: #e3fcef;
+        color: #006644;
+        border-color: #abf5d1;
+    }
+
+    .jira-status-default {
+        background: #f4f5f7;
+        color: #42526e;
+        border-color: #dfe1e6;
+    }
+
+    .jira-detail-body {
+        padding: 1.2rem;
+    }
+
+    .jira-detail-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .jira-side-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .jira-main-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        order: 2;
+    }
+
+    .jira-side-stack {
+        order: 1;
+    }
+
+    .jira-section {
+        border: 1px solid #e7edf6;
+        border-radius: 14px;
+        background: #fff;
+        padding: 1rem;
+    }
+
+    .jira-section-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #0052cc;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.9rem;
+    }
+
+    .jira-empty-note {
+        border: 1px dashed #d5deea;
+        border-radius: 12px;
+        background: #fafcff;
+        padding: 1rem;
+        color: #6b778c;
+    }
+
+    .jira-properties {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .jira-property-row {
+        display: grid;
+        grid-template-columns: 110px minmax(0, 1fr);
+        gap: 0.85rem;
+        align-items: start;
+    }
+
+    .jira-property-label {
+        color: #6b778c;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .jira-property-value {
+        color: #172b4d;
+        font-weight: 600;
+        word-break: break-word;
+    }
+
+    .jira-assignee-box {
+        border: 1px dashed #c7d8f5;
+        border-radius: 12px;
+        background: #f8fbff;
+        padding: 0.9rem;
+    }
+
+    .jira-comment-form .form-control,
+    .jira-comment-form .form-select,
+    .jira-detail-card .form-control,
+    .jira-detail-card .form-select,
+    .jira-detail-card .btn {
+        border-radius: 12px;
+    }
+
+    .jira-comments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .jira-comments-list li {
+        position: relative;
+        border: 1px solid #e8edf5;
+        border-radius: 14px;
+        background: #fff;
+        padding: 0.95rem 1rem 0.95rem 1.1rem;
+    }
+
+    .jira-comments-list li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        border-radius: 14px 0 0 14px;
+        background: linear-gradient(180deg, #0052cc 0%, #4c9aff 100%);
+    }
+
+    .jira-comment-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        align-items: center;
+        font-size: 0.84rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .jira-comment-text {
+        color: #172b4d;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    @@media (max-width: 991.98px) {
+        .jira-property-row {
+            grid-template-columns: 1fr;
+            gap: 0.2rem;
+        }
+    }
+</style>
+
+<div class="card jira-detail-card">
+    <div class="jira-detail-topbar"></div>
+
+    <div class="card-header d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div class="min-w-0">
+            <div class="jira-issue-title">@Model.TalepKonusu</div>
+            <div class="jira-issue-subline">
+                <span>Oluşturma: @Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</span>
+                <span>Talep Açan: @Model.TalepAcan</span>
+            </div>
+        </div>
+
+        <span class="@durumClass">@Model.Durum</span>
+    </div>
+
+    <div class="jira-detail-body">
+        <div class="jira-detail-layout">
+            <div class="jira-main-stack">
+                <div class="jira-section">
+                    <div class="jira-section-title">Yorumlar</div>
+
+                    @if (Model.Yorumlar != null && Model.Yorumlar.Any())
+                    {
+                        <ul class="jira-comments-list">
+                            @foreach (var y in Model.Yorumlar.OrderByDescending(y => y.Tarih))
+                            {
+                                <li>
+                                    <div class="jira-comment-meta">
+                                        <strong>@(string.IsNullOrWhiteSpace(y.Ekleyen) ? "Sistem" : y.Ekleyen)</strong>
+                                        <span class="text-muted">@y.Tarih.ToString("dd.MM.yyyy HH:mm")</span>
+                                    </div>
+                                    <div class="jira-comment-text">@y.YorumMetni</div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="jira-empty-note">Henüz yorum yok.</div>
+                    }
+                </div>
+
+                <div class="jira-section jira-comment-form">
+                    <div class="jira-section-title">Aktivite Ekle</div>
+                    <form method="post" action="@Url.Action("AddYorumForm", ViewContext.RouteData.Values["controller"]?.ToString())" class="d-flex flex-column gap-2 mt-2">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="jiraTaskId" value="@Model.Id" />
+                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                        <textarea class="form-control form-control-sm" name="yorum" rows="4" placeholder="Yorum yaz..."></textarea>
+                        <select class="form-select form-select-sm" name="ekleyen">
+                            <option value="">Seçiniz</option>
+                            @foreach (var kullanici in kullaniciList)
+                            {
+                                <option value="@kullanici">@kullanici</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Yorum Ekle</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="jira-side-stack">
+                <div class="jira-section">
+                    <div class="jira-section-title">Detaylar</div>
+                    <div class="jira-properties">
+                        <div class="jira-property-row">
+                            <div class="jira-property-label">Müşteri</div>
+                            <div class="jira-property-value">@(string.IsNullOrWhiteSpace(Model.MusteriAdi) ? "-" : Model.MusteriAdi)</div>
+                        </div>
+                        <div class="jira-property-row">
+                            <div class="jira-property-label">Talep Türü</div>
+                            <div class="jira-property-value">@(string.IsNullOrWhiteSpace(Model.TalepTuru) ? "-" : Model.TalepTuru)</div>
+                        </div>
+                        <div class="jira-property-row">
+                            <div class="jira-property-label">Talep Açan</div>
+                            <div class="jira-property-value">@Model.TalepAcan</div>
+                        </div>
+                        <div class="jira-property-row">
+                            <div class="jira-property-label">Oluşturma</div>
+                            <div class="jira-property-value">@Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="jira-section">
+                    <div class="jira-section-title">Takip Eden</div>
+                    <div class="jira-assignee-box">
+                        @if (User.IsInRole("Admin") || User.IsInRole("Operasyon"))
+                        {
+                            <form method="post" action="@Url.Action("AssignForm", ViewContext.RouteData.Values["controller"]?.ToString())" class="d-flex flex-column gap-2">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                <select class="form-select form-select-sm" name="takipEden">
+                                    <option value="">Seçiniz</option>
+                                    @if (!string.IsNullOrWhiteSpace(Model.TakipEden) && !kullaniciList.Contains(Model.TakipEden))
+                                    {
+                                        <option value="@Model.TakipEden" selected>@Model.TakipEden</option>
+                                    }
+                                    @foreach (var kullanici in kullaniciList)
+                                    {
+                                        <option value="@kullanici" selected="@(string.Equals(Model.TakipEden, kullanici, StringComparison.Ordinal))">@kullanici</option>
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-primary">Kaydet</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="jira-property-value">@(string.IsNullOrWhiteSpace(Model.TakipEden) ? "-" : Model.TakipEden)</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,344 @@
+@model BtOperasyonTakip.Models.IzinTakipViewModel
+@{
+    ViewData["Title"] = "İzin Takip";
+    var isEditMode = Model.Form.Id.HasValue && Model.Form.Id.Value > 0;
+}
+
+<style>
+    .izin-shell {
+        max-width: 1500px;
+    }
+
+    .izin-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+        color: #fff;
+        border-radius: 18px;
+        padding: 1.35rem 1.5rem;
+        box-shadow: 0 18px 32px rgba(37, 99, 235, 0.14);
+    }
+
+    .izin-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-weight: 600;
+    }
+
+    .izin-card {
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+    .izin-card .card-header {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border-bottom: 1px solid #e6edf7;
+        padding: 1rem 1.2rem;
+    }
+
+    .izin-card .card-body {
+        padding: 1.2rem;
+    }
+
+    .izin-card .form-control,
+    .izin-card .btn,
+    .izin-card .form-select {
+        border-radius: 12px;
+    }
+
+    .summary-box {
+        border: 1px solid #e6edf7;
+        border-radius: 16px;
+        padding: 1rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        height: 100%;
+    }
+
+    .summary-label {
+        font-size: 0.88rem;
+        color: #64748b;
+    }
+
+    .summary-value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .decision-box {
+        min-width: 280px;
+    }
+
+    @@media (max-width: 767.98px) {
+        .izin-hero {
+            padding: 1.1rem;
+        }
+
+        .decision-box {
+            min-width: 100%;
+        }
+    }
+</style>
+
+<div class="container-fluid izin-shell">
+    <div class="izin-hero mb-4 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <h4 class="mb-1 text-white">İzin Takip</h4>
+            <div class="opacity-75">
+                @if (Model.IsAdmin)
+                {
+                    <span>Operasyon izin taleplerini yönetin ve izin hakkı tanımlayın.</span>
+                }
+                else
+                {
+                    <span>İzin talebinizi oluşturun, güncelleyin ve admin kararını takip edin.</span>
+                }
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <span class="izin-chip">Bekleyen: @Model.BekleyenTalepSayisi</span>
+            <span class="izin-chip">Onaylanan: @Model.OnaylananTalepSayisi</span>
+            <span class="izin-chip">Reddedilen: @Model.ReddedilenTalepSayisi</span>
+            <a class="btn btn-sm btn-light fw-semibold"
+               href="@Url.Action("ExportExcel", "Izin")">
+                Excel'e Aktar
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="summary-box">
+                <div class="summary-label">Tanımlı izin hakkı</div>
+                <div class="summary-value">@Model.ToplamHak</div>
+                <div class="text-muted small">gün</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="summary-box">
+                <div class="summary-label">Onaylanmış kullanılan izin</div>
+                <div class="summary-value">@Model.KullanilanGun</div>
+                <div class="text-muted small">gün</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="summary-box">
+                <div class="summary-label">Kalan izin</div>
+                <div class="summary-value">@Model.KalanGun</div>
+                <div class="text-muted small">gün</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card izin-card mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="fw-semibold">@(isEditMode ? "İzin Talebini Güncelle" : "Yeni İzin Talebi")</div>
+            <div class="text-muted small">Kaydedilen her değişiklik admin onayına yeniden düşer.</div>
+        </div>
+        <div class="card-body">
+            <form asp-controller="Izin" asp-action="SaveRequest" method="post" class="row g-3">
+                <input asp-for="Form.Id" type="hidden" />
+
+                <div class="col-md-3">
+                    <label asp-for="Form.BaslangicTarihi" class="form-label">Başlangıç Tarihi</label>
+                    <input asp-for="Form.BaslangicTarihi" class="form-control" type="date" />
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="Form.BitisTarihi" class="form-label">Bitiş Tarihi</label>
+                    <input asp-for="Form.BitisTarihi" class="form-control" type="date" />
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Form.Aciklama" class="form-label">Açıklama / Mazeret</label>
+                    <textarea asp-for="Form.Aciklama" class="form-control" rows="3" maxlength="1000" placeholder="İzin nedeni veya açıklamasını yazın..."></textarea>
+                </div>
+
+                <div class="col-12 d-flex gap-2 flex-wrap">
+                    <button type="submit" class="btn btn-primary">@(isEditMode ? "Güncelle ve Onaya Gönder" : "Talep Oluştur")</button>
+                    @if (isEditMode)
+                    {
+                        <a asp-controller="Izin" asp-action="Index" class="btn btn-outline-secondary">İptal</a>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.IsAdmin)
+    {
+        <div class="card izin-card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="fw-semibold">Kullanıcı İzin Hakları</div>
+                <div class="text-muted small">Sadece operasyon kullanıcıları listelenir.</div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Kullanıcı</th>
+                                <th>Toplam Hak</th>
+                                <th>Kullanılan</th>
+                                <th>Kalan</th>
+                                <th style="width: 260px;">Yeni Hak Tanımı</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.KullaniciHaklari.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">Operasyon kullanıcısı bulunamadı.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var hak in Model.KullaniciHaklari)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@hak.KullaniciAdi</td>
+                                        <td>@hak.ToplamGun gün</td>
+                                        <td>@hak.KullanilanGun gün</td>
+                                        <td>@hak.KalanGun gün</td>
+                                        <td>
+                                            <form asp-controller="Izin" asp-action="SetAllowance" method="post" class="d-flex gap-2">
+                                                <input type="hidden" name="userId" value="@hak.UserId" />
+                                                <input type="number" name="toplamGun" min="0" class="form-control" value="@hak.ToplamGun" />
+                                                <button type="submit" class="btn btn-outline-primary">Kaydet</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="card izin-card">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="fw-semibold">@(Model.IsAdmin ? "Tüm İzin Talepleri" : "İzin Taleplerim")</div>
+            <div class="text-muted small">Düzenlenen kayıtlar tekrar beklemeye alınır.</div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            @if (Model.IsAdmin)
+                            {
+                                <th>Talep Sahibi</th>
+                            }
+                            <th>Tarih Aralığı</th>
+                            <th>Gün</th>
+                            <th>Açıklama</th>
+                            <th>Durum</th>
+                            <th>Admin Notu</th>
+                            <th>Talep Tarihi</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Talepler.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="@(Model.IsAdmin ? 8 : 7)" class="text-center text-muted py-4">Henüz izin talebi bulunmuyor.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var talep in Model.Talepler)
+                            {
+                                var badgeClass = talep.Durum switch
+                                {
+                                    "Onaylandı" => "text-bg-success",
+                                    "Reddedildi" => "text-bg-danger",
+                                    _ => "text-bg-warning"
+                                };
+
+                                <tr>
+                                    @if (Model.IsAdmin)
+                                    {
+                                        <td class="fw-semibold">@talep.TalepSahibiAdi</td>
+                                    }
+                                    <td>
+                                        @talep.BaslangicTarihi.ToString("dd.MM.yyyy")<br />
+                                        <span class="text-muted small">@talep.BitisTarihi.ToString("dd.MM.yyyy")</span>
+                                    </td>
+                                    <td>@talep.GunSayisi gün</td>
+                                    <td>@(string.IsNullOrWhiteSpace(talep.Aciklama) ? "-" : talep.Aciklama)</td>
+                                    <td>
+                                        <span class="badge @badgeClass">@talep.Durum</span>
+                                        @if (talep.KararTarihi.HasValue)
+                                        {
+                                            <div class="small text-muted mt-1">@talep.KararTarihi.Value.ToString("dd.MM.yyyy HH:mm")</div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(talep.AdminAciklama))
+                                        {
+                                            <div>@talep.AdminAciklama</div>
+                                            @if (!string.IsNullOrWhiteSpace(talep.KararVerenAdi))
+                                            {
+                                                <div class="small text-muted">@talep.KararVerenAdi</div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>@talep.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-2 decision-box">
+                                            @if (talep.CanEdit)
+                                            {
+                                                <a asp-controller="Izin" asp-action="Index" asp-route-editId="@talep.Id" class="btn btn-sm btn-outline-secondary">Düzenle</a>
+                                            }
+
+                                            @if (talep.CanDecide)
+                                            {
+                                                <form asp-controller="Izin" asp-action="Decide" method="post" class="d-flex flex-column gap-2">
+                                                    <input type="hidden" name="id" value="@talep.Id" />
+                                                    <textarea name="adminAciklama" class="form-control form-control-sm" rows="2" maxlength="1000" placeholder="Onay notu veya red mazereti..."></textarea>
+                                                    <div class="d-flex gap-2">
+                                                        <button type="submit" name="karar" value="approve" class="btn btn-sm btn-success">Onayla</button>
+                                                        <button type="submit" name="karar" value="reject" class="btn btn-sm btn-danger">Reddet</button>
+                                                    </div>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

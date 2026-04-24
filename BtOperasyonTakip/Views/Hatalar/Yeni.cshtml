@@ -1,0 +1,75 @@
+﻿@model BtOperasyonTakip.Models.Hata
+
+@{
+    ViewData["Title"] = "Yeni Hata Oluştur";
+}
+
+<div class="container mt-5">
+    <h2>Yeni Hata Oluştur</h2>
+
+    <form asp-action="Yeni" method="post" class="row g-3">
+
+        <div class="col-md-6">
+            <label class="form-label">Müşteri *</label>
+            <select asp-for="MusteriID" class="form-select" asp-items="ViewBag.Musteriler" required>
+                <option value="">Seçiniz</option>
+            </select>
+            <span asp-validation-for="MusteriID" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Durum *</label>
+            <select asp-for="Durum" class="form-select" required>
+                <option value="Açık">Açık</option>
+                <option value="Beklemede">Beklemede</option>
+                <option value="Kapalı">Kapalı</option>
+            </select>
+            <span asp-validation-for="Durum" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Hata Adı *</label>
+            <input asp-for="HataAdi" class="form-control" required />
+            <span asp-validation-for="HataAdi" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Kategori *</label>
+            <select asp-for="KategoriBilgisi" class="form-select" required>
+                <option value="">Seçiniz</option>
+                <option value="Yazılım">Yazılım</option>
+                <option value="Donanım">Donanım</option>
+                <option value="Ağ">Ağ</option>
+                <option value="Veritabanı">Veritabanı</option>
+                <option value="Diğer">Diğer</option>
+            </select>
+            <span asp-validation-for="KategoriBilgisi" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Atanan Kullanıcı *</label>
+            @if (User.IsInRole("Admin"))
+            {
+                <select name="atanacakUserId" class="form-select" asp-items="ViewBag.Kullanicilar" required>
+                    <option value="">Seçiniz</option>
+                </select>
+                @Html.ValidationMessage("atanacakUserId", new { @class = "text-danger" })
+            }
+            else
+            {
+                <input class="form-control" value="@User.Identity?.Name" readonly />
+            }
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">Açıklama</label>
+            <textarea asp-for="HataAciklama" rows="4" class="form-control"></textarea>
+            <span asp-validation-for="HataAciklama" class="text-danger"></span>
+        </div>
+
+        <div class="col-12 mt-2">
+            <button class="btn btn-primary">Kaydet</button>
+            <a asp-action="Index" asp-controller="Hatalar" class="btn btn-secondary">Geri</a>
+        </div>
+    </form>
+</div>

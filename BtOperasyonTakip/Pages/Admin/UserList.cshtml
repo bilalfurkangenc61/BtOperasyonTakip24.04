@@ -1,0 +1,42 @@
+@page
+@model BtOperasyonTakip.Pages.Admin.UserManagementModel
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Kullanıcı Listesi";
+}
+
+<h2 class="text-primary">Kullanıcı Listesi</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+else if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Kullanıcı Adı</th>
+            <th>E-posta</th>
+    
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model.Users)
+        {
+            <tr>
+                <td>@user.UserName</td>
+                <td>@user.Email</td>
+               
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="mb-3">
+    <a href="/Auth/Register" class="btn btn-success">+ Yeni Kullanıcı Ekle</a>
+</div>

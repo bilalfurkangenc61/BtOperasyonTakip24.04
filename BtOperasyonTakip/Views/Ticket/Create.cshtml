@@ -1,0 +1,358 @@
+﻿@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Yeni Ticket Oluştur";
+}
+
+@model BtOperasyonTakip.Models.Ticket
+
+@{
+    var selectedKategori = Context.Request.HasFormContentType
+        ? Context.Request.Form["Kategori"].ToString()
+        : Model?.Kategori;
+
+    var selectedWebSitesiTipi = Context.Request.HasFormContentType
+        ? Context.Request.Form["WebSitesiTipi"].ToString()
+        : Model?.WebSitesiTipi;
+
+    var selectedOdemeTurleri = (Context.Request.HasFormContentType
+            ? Context.Request.Form["OdemeTurleri"].ToArray()
+            : (Model?.OdemeTurleri ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    var selectedOdemeYontemleri = (Context.Request.HasFormContentType
+            ? Context.Request.Form["OdemeYontemleri"].ToArray()
+            : (Model?.OdemeYontemleri ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+}
+
+<style>
+    .ticket-create-shell {
+        max-width: 1400px;
+    }
+
+    .ticket-create-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+        color: #fff;
+        border-radius: 1.15rem;
+        padding: 1.4rem 1.5rem;
+        box-shadow: 0 1rem 2rem rgba(37, 99, 235, 0.16);
+    }
+
+    .ticket-create-hero .hero-subtext {
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.92rem;
+    }
+
+    .ticket-create-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-weight: 600;
+    }
+
+    .ticket-create-card {
+        border: 0;
+        border-radius: 1rem;
+        box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+    .ticket-create-card .card-header {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border-bottom: 1px solid #e9eef5;
+        padding: 1rem 1.25rem;
+    }
+
+    .ticket-create-card .card-body {
+        padding: 1.25rem;
+    }
+
+    .ticket-create-card .form-control,
+    .ticket-create-card .form-select,
+    .ticket-create-card .btn {
+        border-radius: 0.85rem;
+    }
+
+    .section-panel {
+        border: 1px solid #e9eef5;
+        border-radius: 1rem;
+        padding: 1rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        height: 100%;
+    }
+
+    .section-panel-title {
+        font-weight: 700;
+        color: #1d4ed8;
+        margin-bottom: 0.9rem;
+    }
+
+    .check-tile-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .action-bar {
+        margin-top: 1.25rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e9eef5;
+    }
+
+    .check-tile {
+        position: relative;
+    }
+
+    .check-tile .form-check-input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .check-tile .form-check-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 130px;
+        padding: 0.75rem 0.95rem;
+        border-radius: 0.9rem;
+        border: 1px solid #dbe3ef;
+        background: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .check-tile .form-check-input:checked + .form-check-label {
+        background: #eef4ff;
+        border-color: #86b7fe;
+        color: #1d4ed8;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.08);
+    }
+</style>
+
+<div class="container py-3 ticket-create-shell">
+    <div class="ticket-create-hero mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+            <h2 class="mb-1">🆕 Yeni Ticket Oluştur</h2>
+            <div class="hero-subtext">Müşteri, ödeme ve teknik bilgileri tek form üzerinden eksiksiz girin.</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="ticket-create-chip">Süreç başlangıcı: Operasyon 1</span>
+            <span class="ticket-create-chip">Müşteri tipi zorunlu</span>
+        </div>
+    </div>
+
+    <div class="card ticket-create-card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="fw-semibold text-primary">Ticket Bilgileri</div>
+                <div class="small text-muted">Zorunlu alanları doldurup kaydı oluşturun.</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="row g-4">
+                    <div class="col-lg-7">
+                        <div class="section-panel">
+                            <div class="section-panel-title">Genel Bilgiler</div>
+                            <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label asp-for="FirmaAdi" class="form-label fw-bold">
+                            🏢 Firma Adı <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="FirmaAdi" class="form-control" placeholder="Firma adı" required />
+                        <span asp-validation-for="FirmaAdi" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Kategori <span class="text-danger">*</span></label>
+                        <select class="form-select" name="Kategori" required>
+                            <option value="">Seçiniz</option>
+                            @foreach (var kategori in (IEnumerable<string>)ViewBag.Kategoriler ?? new List<string>())
+                            {
+                                <option value="@kategori" selected="@(string.Equals(kategori, selectedKategori, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@kategori</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Müşteri Ne Kullanacak? <span class="text-danger">*</span></label>
+                        <div class="check-tile-wrap">
+                        <div class="check-tile">
+                            <input class="form-check-input" type="checkbox" name="OdemeTurleri" value="3D" id="odeme3d" checked="@selectedOdemeTurleri.Contains("3D")">
+                            <label class="form-check-label" for="odeme3d">3D</label>
+                        </div>
+                        <div class="check-tile">
+                            <input class="form-check-input" type="checkbox" name="OdemeTurleri" value="2D" id="odeme2d" checked="@selectedOdemeTurleri.Contains("2D")">
+                            <label class="form-check-label" for="odeme2d">2D</label>
+                        </div>
+                        <div class="check-tile">
+                            <input class="form-check-input" type="checkbox" name="OdemeTurleri" value="Linkli Ödeme" id="odemeLinkli" checked="@selectedOdemeTurleri.Contains("Linkli Ödeme")">
+                            <label class="form-check-label" for="odemeLinkli">Linkli Ödeme</label>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Web Sitesi Kim Tarafından Yazıldı? <span class="text-danger">*</span></label>
+                        <select class="form-select" name="WebSitesiTipi" required>
+                            <option value="">Seçiniz</option>
+                            <option value="Kendi Yazdı" selected="@(string.Equals(selectedWebSitesiTipi, "Kendi Yazdı", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Kendi Yazdı</option>
+                            <option value="Hizmet Aldığı Firma" selected="@(string.Equals(selectedWebSitesiTipi, "Hizmet Aldığı Firma", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Hizmet Aldığı Firma</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Hangi Ödeme Yöntemleri Kullanılacak? <span class="text-danger">*</span></label>
+                        <div class="check-tile-wrap">
+                        <div class="check-tile">
+                            <input class="form-check-input" type="checkbox" name="OdemeYontemleri" value="Normal Çekim" id="odemeNormal" checked="@selectedOdemeYontemleri.Contains("Normal Çekim")">
+                            <label class="form-check-label" for="odemeNormal">Normal Çekim</label>
+                        </div>
+                        <div class="check-tile">
+                            <input class="form-check-input" type="checkbox" name="OdemeYontemleri" value="Previzyonlu Çekim" id="odemePrevizyonlu" checked="@selectedOdemeYontemleri.Contains("Previzyonlu Çekim")">
+                            <label class="form-check-label" for="odemePrevizyonlu">Previzyonlu Çekim</label>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label asp-for="MusteriTipi" class="form-label fw-bold">
+                            👥 Müşteri Tipi <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="MusteriTipi" class="form-select" required>
+                            <option value="Kurumsal">Kurumsal</option>
+                            <option value="Bireysel">Bireysel</option>
+                        </select>
+                        <span asp-validation-for="MusteriTipi" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label asp-for="MusteriWebSitesi" class="form-label fw-bold">
+                            🌐 Müşteri Web Sitesi <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="MusteriWebSitesi" class="form-control" placeholder="https://example.com" required />
+                        <span asp-validation-for="MusteriWebSitesi" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="YazilimciAdi" class="form-label fw-bold">
+                            👤 Yazılımcı Adı <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="YazilimciAdi" class="form-control" placeholder="Adı" required />
+                        <span asp-validation-for="YazilimciAdi" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="YazilimciSoyadi" class="form-label fw-bold">
+                            👤 Yazılımcı Soyadı <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="YazilimciSoyadi" class="form-control" placeholder="Soyadı" required />
+                        <span asp-validation-for="YazilimciSoyadi" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Mail" class="form-label fw-bold">
+                            📧 Mail Adresi <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Mail" type="email" class="form-control" placeholder="ornek@mail.com" required />
+                        <span asp-validation-for="Mail" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="IrtibatNumarasi" class="form-label fw-bold">
+                            📞 İrtibat Numarası <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="IrtibatNumarasi" class="form-control" placeholder="+90 5XX XXX XXXX" required />
+                        <span asp-validation-for="IrtibatNumarasi" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label asp-for="TeknolojiBilgisi" class="form-label fw-bold">
+                            💻 Teknoloji Bilgisi <span class="text-muted">(Opsiyonel - Operasyon tarafından seçilecek)</span>
+                        </label>
+                        <input asp-for="TeknolojiBilgisi" class="form-control" placeholder="Boş bırakabilirsiniz, operasyon onaylarken seçecektir" />
+                        <span asp-validation-for="TeknolojiBilgisi" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label asp-for="Aciklama" class="form-label fw-bold">
+                            📝 Açıklama (Opsiyonel)
+                        </label>
+                        <textarea asp-for="Aciklama" class="form-control" rows="4" placeholder="Ticket ile ilgili ek bilgiler..."></textarea>
+                        <span asp-validation-for="Aciklama" class="text-danger"></span>
+                    </div>
+                </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-5">
+                        <div class="section-panel h-100">
+                            <div class="section-panel-title">Süreç Özeti</div>
+                            <div class="small text-muted mb-3">Kayıt sonrası ticket doğrudan Operasyon 1 onay adımına düşer. Gerekli alanları eksiksiz doldurmanız süreci hızlandırır.</div>
+
+                            <div class="section-panel mb-3">
+                                <div class="fw-semibold text-primary mb-2">Dikkat Edilecekler</div>
+                                <ul class="mb-0 ps-3 small text-muted">
+                                    <li>Aynı firma, site veya mail için açık ticket varsa kayıt engellenir.</li>
+                                    <li>Müşteri tipi Kurumsal veya Bireysel olmalıdır.</li>
+                                    <li>Teknoloji bilgisi boş bırakılabilir; operasyon sürecinde tamamlanabilir.</li>
+                                </ul>
+                            </div>
+
+                            <div class="section-panel">
+                                <div class="fw-semibold text-primary mb-2">Aksiyonlar</div>
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-primary" onclick="window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });">
+                                        <i class="bi bi-arrow-down-circle"></i> Aşağıdaki Gönder Butonuna Git
+                                    </button>
+                                    <a asp-action="Index" class="btn btn-outline-secondary">
+                                        <i class="bi bi-arrow-left"></i> Listeye Dön
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-bar d-flex flex-column flex-md-row gap-2 justify-content-end">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Geri
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-send-check"></i> Ticket Gönder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

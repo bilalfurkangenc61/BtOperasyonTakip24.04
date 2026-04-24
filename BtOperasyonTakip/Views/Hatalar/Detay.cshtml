@@ -1,0 +1,84 @@
+﻿@model BtOperasyonTakip.Models.Hata
+
+@{
+    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+    var currentUserIdText = User.FindFirst("UserId")?.Value;
+    var currentUserId = int.TryParse(currentUserIdText, out var parsedUserId) ? parsedUserId : 0;
+    var canReply = Model.OlusturanUserId == currentUserId;
+}
+
+<div class="container mt-4">
+
+    @if (TempData["HataYanitiVar"] != null)
+    {
+        <div class="alert alert-success">Yeni operasyon yanıtı kaydedildi.</div>
+    }
+
+    <h2>@Model.HataAdi</h2>
+
+    <p><strong>Açıklama:</strong> @Model.HataAciklama</p>
+    <p><strong>Kategori:</strong> @Model.KategoriBilgisi</p>
+    <p><strong>Durum:</strong> @Model.Durum</p>
+    <p><strong>Atanan Kullanıcı:</strong> @Model.OlusturanKullaniciAdi</p>
+    <p><strong>Tarih:</strong> @Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</p>
+
+    @if (role == "Admin")
+    {
+        <hr />
+
+        <h4>Atanan Kişiyi Değiştir</h4>
+
+        <form method="post" action="/Hatalar/AtaDegistir/@Model.Id" class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label">Yeni Atanan Kullanıcı</label>
+                <select name="atanacakUserId" class="form-select" asp-items="ViewBag.Kullanicilar" required>
+                    <option value="">Seçiniz</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-warning">Atamayı Güncelle</button>
+            </div>
+        </form>
+    }
+
+    <hr />
+
+    <h4>Operasyon Yanıtı</h4>
+
+    @if (!string.IsNullOrWhiteSpace(Model.OperasyonCevabi))
+    {
+        <div class="alert alert-secondary">
+            <b>@Model.CevaplayanKullaniciAdi</b>
+            <small>(@Model.CevaplaamaTarihi?.ToString("dd.MM.yyyy HH:mm"))</small>
+            <br /><br />
+            @Model.OperasyonCevabi
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">Henüz operasyon tarafından cevap verilmemiş.</div>
+    }
+
+    <hr />
+
+    @if (canReply)
+    {
+        <form method="post" action="/Hatalar/Cevapla/@Model.Id">
+            <label>Cevap</label>
+            <textarea name="cevap" class="form-control" rows="4"></textarea>
+
+            <label class="mt-2">Durum</label>
+            <select name="durum" class="form-control">
+                <option value="Açık">Açık</option>
+                <option value="Kapalı">Kapalı</option>
+                <option value="Beklemede">Beklemede</option>
+            </select>
+
+            <button class="btn btn-success mt-3">Gönder</button>
+        </form>
+    }
+    else
+    {
+        <div class="alert alert-info">Bu kayda sadece atanmış kullanıcı cevap verebilir.</div>
+    }
+</div>

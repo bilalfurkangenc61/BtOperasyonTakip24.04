@@ -1,0 +1,239 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Giriş Yap";
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<style>
+    body {
+        background: radial-gradient(circle at top left, #2563eb 0%, #0f172a 65%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Segoe UI', sans-serif;
+        color: #333;
+        margin: 0;
+        padding: 1rem;
+    }
+
+    .login-shell {
+        width: min(100%, 1100px);
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 1.25rem;
+        align-items: stretch;
+    }
+
+    .login-hero {
+        color: #fff;
+        padding: 2.5rem;
+        border-radius: 1.4rem;
+        background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+        border: 1px solid rgba(255,255,255,0.12);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 1.25rem 2.5rem rgba(15, 23, 42, 0.22);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .login-hero h1 {
+        font-size: clamp(2rem, 3vw, 3rem);
+        font-weight: 800;
+        margin-bottom: 0.75rem;
+    }
+
+    .login-hero p {
+        color: rgba(255,255,255,0.82);
+        font-size: 1rem;
+        max-width: 520px;
+    }
+
+    .hero-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.65rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.12);
+        font-weight: 600;
+        font-size: 0.92rem;
+    }
+
+    .login-card {
+        background: rgba(255, 255, 255, 0.98);
+        border-radius: 1.4rem;
+        padding: 2.5rem 2.25rem;
+        width: 100%;
+        box-shadow: 0 1rem 2.5rem rgba(15, 23, 42, 0.22);
+        animation: fadeIn 0.8s ease-in-out;
+        border: 1px solid rgba(255,255,255,0.25);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+        .login-card h3 {
+            font-weight: 700;
+            color: #0056d6;
+        }
+
+    .form-control {
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        color: #000 !important;
+        background-color: #fff !important;
+    }
+
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 6px rgba(0, 123, 255, 0.3);
+        }
+
+    label.form-label {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-check-label {
+        color: #333;
+    }
+
+    .btn-login {
+        background: linear-gradient(90deg, #2563eb, #1d4ed8);
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: 0.3s ease;
+        box-shadow: 0 0.75rem 1.5rem rgba(37, 99, 235, 0.18);
+    }
+
+        .btn-login:hover {
+            background: linear-gradient(90deg, #1d4ed8, #1e40af);
+            transform: translateY(-2px);
+        }
+
+    .login-topline {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.75rem;
+        border-radius: 999px;
+        background: #eef4ff;
+        color: #1d4ed8;
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .alert {
+        border-radius: 8px;
+    }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@media (max-width: 991.98px) {
+        .login-shell {
+            grid-template-columns: 1fr;
+        }
+
+        .login-hero {
+            padding: 1.75rem;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .login-card {
+            padding: 1.5rem 1.25rem;
+        }
+
+        .login-hero {
+            padding: 1.35rem;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="login-shell">
+    <div class="login-hero">
+        <div>
+            <div class="hero-badge">⚙️ Operasyon Takip</div>
+            <h1>Operasyon süreçlerini tek merkezden yönetin.</h1>
+            <p>Müşteri, ticket, hata, toplantı notları ve iş takip akışlarını daha düzenli ve hızlı şekilde yönetin.</p>
+            <div class="hero-badges">
+                <div class="hero-badge">📋 Müşteri Yönetimi</div>
+                <div class="hero-badge">🎫 Ticket Takibi</div>
+                <div class="hero-badge">🗒️ Toplantı Notları</div>
+            </div>
+        </div>
+        <div class="small" style="color: rgba(255,255,255,0.72);">Güvenli giriş ile rol bazlı ekranlara yönlendirme yapılır.</div>
+    </div>
+
+    <div class="login-card text-center">
+        <div class="login-topline">🔐 Güvenli Giriş</div>
+        <h3 class="mb-2">Hoş geldiniz</h3>
+        <p class="text-muted">Devam etmek için hesabınızla giriş yapın</p>
+
+        @if (ViewBag.Error != null)
+        {
+            <div class="alert alert-danger">@ViewBag.Error</div>
+        }
+
+        <form method="post">
+            <div class="mb-3 text-start">
+                <label class="form-label">Kullanıcı Adı</label>
+                <input type="text" name="username" class="form-control" placeholder="Kullanıcı adınızı girin" required />
+            </div>
+            <div class="mb-3 text-start">
+                <label class="form-label">Şifre</label>
+                <input type="password" name="password" class="form-control" placeholder="Şifrenizi girin" required />
+            </div>
+
+            <div class="form-check text-start mb-3">
+                <input type="checkbox" name="rememberMe" class="form-check-input" id="remember">
+                <label class="form-check-label" for="remember">Beni Hatırla</label>
+            </div>
+
+            <button type="submit" class="btn btn-login w-100 text-white py-2">Giriş Yap</button>
+        </form>
+
+        <div class="mt-3">
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-action="Register" class="text-decoration-none text-primary fw-semibold">Hesabın yok mu? Kayıt ol</a>
+            }
+        </div>
+    </div>
+</div>
+</body>
+</html>
