@@ -6,10 +6,6 @@
 @model BtOperasyonTakip.Models.Ticket
 
 @{
-    var selectedKategori = Context.Request.HasFormContentType
-        ? Context.Request.Form["Kategori"].ToString()
-        : Model?.Kategori;
-
     var selectedWebSitesiTipi = Context.Request.HasFormContentType
         ? Context.Request.Form["WebSitesiTipi"].ToString()
         : Model?.WebSitesiTipi;
@@ -157,6 +153,7 @@
         <div class="card-body">
             <form asp-action="Create" method="post">
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <input asp-for="MusteriTipi" type="hidden" value="Kurumsal" />
 
                 <div class="row g-4">
                     <div class="col-lg-7">
@@ -169,19 +166,6 @@
                         </label>
                         <input asp-for="FirmaAdi" class="form-control" placeholder="Firma adı" required />
                         <span asp-validation-for="FirmaAdi" class="text-danger"></span>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label fw-bold">Kategori <span class="text-danger">*</span></label>
-                        <select class="form-select" name="Kategori" required>
-                            <option value="">Seçiniz</option>
-                            @foreach (var kategori in (IEnumerable<string>)ViewBag.Kategoriler ?? new List<string>())
-                            {
-                                <option value="@kategori" selected="@(string.Equals(kategori, selectedKategori, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@kategori</option>
-                            }
-                        </select>
                     </div>
                 </div>
 
@@ -234,19 +218,6 @@
 
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label asp-for="MusteriTipi" class="form-label fw-bold">
-                            👥 Müşteri Tipi <span class="text-danger">*</span>
-                        </label>
-                        <select asp-for="MusteriTipi" class="form-select" required>
-                            <option value="Kurumsal">Kurumsal</option>
-                            <option value="Bireysel">Bireysel</option>
-                        </select>
-                        <span asp-validation-for="MusteriTipi" class="text-danger"></span>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12 mb-3">
                         <label asp-for="MusteriWebSitesi" class="form-label fw-bold">
                             🌐 Müşteri Web Sitesi <span class="text-danger">*</span>
                         </label>
@@ -289,25 +260,6 @@
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label asp-for="TeknolojiBilgisi" class="form-label fw-bold">
-                            💻 Teknoloji Bilgisi <span class="text-muted">(Opsiyonel - Operasyon tarafından seçilecek)</span>
-                        </label>
-                        <input asp-for="TeknolojiBilgisi" class="form-control" placeholder="Boş bırakabilirsiniz, operasyon onaylarken seçecektir" />
-                        <span asp-validation-for="TeknolojiBilgisi" class="text-danger"></span>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label asp-for="Aciklama" class="form-label fw-bold">
-                            📝 Açıklama (Opsiyonel)
-                        </label>
-                        <textarea asp-for="Aciklama" class="form-control" rows="4" placeholder="Ticket ile ilgili ek bilgiler..."></textarea>
-                        <span asp-validation-for="Aciklama" class="text-danger"></span>
-                    </div>
-                </div>
                         </div>
                     </div>
 
@@ -320,8 +272,8 @@
                                 <div class="fw-semibold text-primary mb-2">Dikkat Edilecekler</div>
                                 <ul class="mb-0 ps-3 small text-muted">
                                     <li>Aynı firma, site veya mail için açık ticket varsa kayıt engellenir.</li>
-                                    <li>Müşteri tipi Kurumsal veya Bireysel olmalıdır.</li>
-                                    <li>Teknoloji bilgisi boş bırakılabilir; operasyon sürecinde tamamlanabilir.</li>
+                                    <li>Firma, web sitesi ve iletişim bilgileri eksiksiz girilmelidir.</li>
+                                    <li>Ödeme ve web sitesi seçimleri doğru işaretlenmelidir.</li>
                                 </ul>
                             </div>
 

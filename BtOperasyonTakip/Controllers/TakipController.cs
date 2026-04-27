@@ -1,5 +1,6 @@
 using BtOperasyonTakip.Data;
 using BtOperasyonTakip.Models;
+using BtOperasyonTakip.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,7 @@ namespace BtOperasyonTakip.Controllers
     {
         private readonly AppDbContext _context;
 
-        private static readonly string[] AllowedTalepTurleri = ["Geliştirme", "Eğitim"];
+        private static readonly string[] AllowedTalepTurleri = ["Geliştirme", "Eğitim", "Entegrasyon", "Hata Çözüm"];
         private const int DefaultPageSize = 10;
         private const int MaxPageSize = 100;
 
@@ -37,6 +38,44 @@ namespace BtOperasyonTakip.Controllers
                 .Select(x => string.IsNullOrWhiteSpace(x.FullName) ? x.UserName : x.FullName!)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Select(x => x.Trim())
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+        }
+
+        private List<string> GetOperasyonKullaniciSecenekleri()
+        {
+            return _context.Users
+                .AsNoTracking()
+                .Where(x => x.Role == AppRoles.Operasyon)
+                .Select(x => string.IsNullOrWhiteSpace(x.FullName) ? x.UserName : x.FullName!)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+        }
+
+        private List<string> GetTalepAcanSecenekleri()
+        {
+            return _context.Users
+                .AsNoTracking()
+                .Select(x => string.IsNullOrWhiteSpace(x.FullName) ? x.UserName : x.FullName!)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Concat(
+                    _context.Parametreler
+                        .AsNoTracking()
+                        .Where(x =>
+                            (x.Tur == "TalepSahibi" || x.Tur == "TalepEden") &&
+                            x.ParAdi != null &&
+                            x.ParAdi != "")
+                        .Select(x => x.ParAdi!.Trim()))
+                .Concat(
+                    _context.Musteriler
+                        .AsNoTracking()
+                        .Where(x => x.TalepSahibi != null && x.TalepSahibi != "")
+                        .Select(x => x.TalepSahibi!.Trim()))
                 .Distinct()
                 .OrderBy(x => x)
                 .ToList();
@@ -76,7 +115,8 @@ namespace BtOperasyonTakip.Controllers
             pageSize = pageSize < 1 ? DefaultPageSize : pageSize;
             pageSize = pageSize > MaxPageSize ? MaxPageSize : pageSize;
 
-            var kullaniciList = GetKullaniciSecenekleri();
+            var talepAcanList = GetTalepAcanSecenekleri();
+            var operasyonKullaniciList = GetOperasyonKullaniciSecenekleri();
 
             var musteriList = _context.Musteriler
                 .AsNoTracking()
@@ -122,8 +162,8 @@ namespace BtOperasyonTakip.Controllers
                 Aktif = paged.Where(t => (t.Durum ?? "").Trim().Equals("Aktif", StringComparison.OrdinalIgnoreCase)).ToList(),
                 Tamamlandi = paged.Where(t => (t.Durum ?? "").Trim().Equals("Tamamlandı", StringComparison.OrdinalIgnoreCase)).ToList(),
                 MusteriSecenekleri = musteriList,
-                TalepAcanSecenekleri = kullaniciList,
-                TakipEdenSecenekleri = kullaniciList
+                TalepAcanSecenekleri = talepAcanList,
+                TakipEdenSecenekleri = operasyonKullaniciList
             };
 
             if (selectedTaskId.HasValue && selectedTaskId.Value > 0)
@@ -134,7 +174,7 @@ namespace BtOperasyonTakip.Controllers
                     .FirstOrDefault(x => x.Id == selectedTaskId.Value);
             }
 
-            ViewBag.KullaniciSecenekleri = kullaniciList;
+            ViewBag.KullaniciSecenekleri = operasyonKullaniciList;
             return View(model);
         }
 
@@ -425,7 +465,7 @@ namespace BtOperasyonTakip.Controllers
             if (task == null)
                 return Content("<div class='text-danger small'>Kayıt bulunamadı.</div>", "text/html");
 
-            ViewBag.KullaniciSecenekleri = GetKullaniciSecenekleri();
+            ViewBag.KullaniciSecenekleri = GetOperasyonKullaniciSecenekleri();
             return PartialView("~/Views/Jira/_JiraDetailCard.cshtml", task);
         }
 

@@ -6,6 +6,7 @@ namespace BtOperasyonTakip.Models
         public Dictionary<int, Detay> SonDetaylar { get; set; } = new();
         public List<string> TeknolojiSecenekleri { get; set; } = new();
         public List<string> TalepSahibiSecenekleri { get; set; } = new();
+        public List<string> KullaniciSecenekleri { get; set; } = new();
 
         public string? Q { get; set; }
         public string? Durum { get; set; }

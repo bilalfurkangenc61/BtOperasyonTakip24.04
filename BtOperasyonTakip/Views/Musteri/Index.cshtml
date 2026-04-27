@@ -114,7 +114,7 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Talep Sahibi</label>
+                    <label class="form-label">Kimden Geldi</label>
                     <select id="filterTalep" name="talepSahibi" class="form-select">
                         <option value="">Tümü</option>
                         @foreach (var ts in (ViewData["TalepSahipleri"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
@@ -166,7 +166,7 @@
                             <th>Teknoloji</th>
                             <th>Durum</th>
                             <th>Durum Değ. Tarihi</th>
-                            <th>Talep Sahibi</th>
+                            <th>Kimden Geldi</th>
                             <th>Kaynak</th>
                             <th>Kayıt Tarihi</th>
                             <th>Açıklama</th>
@@ -347,7 +347,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Talep Sahibi</label>
+                            <label class="form-label">Kimden Geldi</label>
                             <select name="TalepSahibi" class="form-select">
                                 <option value="">Seçiniz</option>
                                 @foreach (var ts in (ViewData["TalepSahipleri"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
@@ -448,7 +448,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Talep Sahibi</label>
+                            <label class="form-label">Kimden Geldi</label>
                             <input type="text" id="editTalepSahibi" name="TalepSahibi" class="form-control" />
                         </div>
 

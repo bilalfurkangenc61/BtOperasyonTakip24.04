@@ -328,7 +328,12 @@
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@Model.Id" />
                                 <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
-                                <select class="form-select form-select-sm" name="takipEden">
+                                <input type="text"
+                                       class="form-control form-control-sm"
+                                       id="takipEdenSearch_@Model.Id"
+                                       placeholder="Yazarak ara..."
+                                       autocomplete="off" />
+                                <select class="form-select form-select-sm" id="takipEdenSelect_@Model.Id" name="takipEden">
                                     <option value="">Seçiniz</option>
                                     @if (!string.IsNullOrWhiteSpace(Model.TakipEden) && !kullaniciList.Contains(Model.TakipEden))
                                     {
@@ -341,6 +346,72 @@
                                 </select>
                                 <button type="submit" class="btn btn-sm btn-primary">Kaydet</button>
                             </form>
+                            <script>
+                                (function () {
+                                    const searchInput = document.getElementById('takipEdenSearch_@Model.Id');
+                                    const select = document.getElementById('takipEdenSelect_@Model.Id');
+                                    if (!searchInput || !select) return;
+
+                                    const allOptions = Array.from(select.options).map(option => ({
+                                        value: option.value,
+                                        text: option.text,
+                                        selected: option.selected
+                                    }));
+
+                                    const renderOptions = function (filterText) {
+                                        const normalizedFilter = (filterText || '').trim().toLocaleLowerCase('tr-TR');
+                                        const currentValue = select.value;
+                                        let hasSelectedMatch = false;
+                                        let firstMatchedValue = '';
+
+                                        select.innerHTML = '';
+
+                                        allOptions.forEach(option => {
+                                            const isPlaceholder = option.value === '';
+                                            const matches = isPlaceholder || option.text.toLocaleLowerCase('tr-TR').includes(normalizedFilter);
+
+                                            if (!matches) return;
+
+                                            const element = document.createElement('option');
+                                            element.value = option.value;
+                                            element.text = option.text;
+                                            element.selected = option.value === currentValue;
+                                            if (element.selected) {
+                                                hasSelectedMatch = true;
+                                            }
+
+                                            if (!isPlaceholder && !firstMatchedValue) {
+                                                firstMatchedValue = option.value;
+                                            }
+
+                                            select.appendChild(element);
+                                        });
+
+                                        if (select.options.length === 1 && select.options[0].value === '') {
+                                            const emptyOption = document.createElement('option');
+                                            emptyOption.value = '';
+                                            emptyOption.text = 'Sonuç bulunamadı';
+                                            select.appendChild(emptyOption);
+                                        }
+
+                                        if (normalizedFilter) {
+                                            if (hasSelectedMatch) {
+                                                select.value = currentValue;
+                                            } else if (firstMatchedValue) {
+                                                select.value = firstMatchedValue;
+                                            }
+                                        } else {
+                                            select.value = currentValue;
+                                        }
+                                    };
+
+                                    searchInput.addEventListener('input', function () {
+                                        renderOptions(this.value);
+                                    });
+
+                                    renderOptions('');
+                                })();
+                            </script>
                         }
                         else
                         {

@@ -1,4 +1,8 @@
 ﻿@model IEnumerable<BtOperasyonTakip.Models.Detay>
+@{
+    var kullaniciSecenekleri = ViewBag.KullaniciSecenekleri as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var mevcutKullanici = User?.Identity?.Name;
+}
 
 <div id="detayContainer" class="detay-container" data-musteri-id="@ViewBag.MusteriID">
 
@@ -9,7 +13,7 @@
 
         <div class="card-body">
 
-            <form id="yeniDetayForm" method="post">
+            <form id="yeniDetayForm" method="post" action="@Url.Action("AddDetay", "Detay")">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="MusteriID" value="@ViewBag.MusteriID" />
                 <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
@@ -27,7 +31,13 @@
 
                     <div class="col-md-2">
                         <label class="form-label">Ekleyen</label>
-                        <input type="text" name="Kekleyen" class="form-control" />
+                        <select name="Kekleyen" class="form-select">
+                            <option value="">Seçiniz</option>
+                            @foreach (var kisi in kullaniciSecenekleri)
+                            {
+                                <option value="@kisi" selected="@(string.Equals(kisi, mevcutKullanici, StringComparison.OrdinalIgnoreCase))">@kisi</option>
+                            }
+                        </select>
                     </div>
 
                     <div class="col-md-3">
@@ -96,7 +106,7 @@
             </div>
 
             <div class="modal-body">
-                <form id="detayEditForm">
+                <form id="detayEditForm" method="post" action="@Url.Action("UpdateDetay", "Detay")">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="DetayID" id="editDetayID" />
                     <input type="hidden" name="MusteriID" value="@ViewBag.MusteriID" />
@@ -114,7 +124,13 @@
 
                     <div class="mb-3">
                         <label>Ekleyen</label>
-                        <input type="text" name="Kekleyen" id="editKekleyen" class="form-control" />
+                        <select name="Kekleyen" id="editKekleyen" class="form-select">
+                            <option value="">Seçiniz</option>
+                            @foreach (var kisi in kullaniciSecenekleri)
+                            {
+                                <option value="@kisi">@kisi</option>
+                            }
+                        </select>
                     </div>
 
                     <div class="mb-3">
@@ -126,7 +142,7 @@
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
-                <button type="button" class="btn btn-primary" id="saveEditBtn">Kaydet</button>
+                <button type="submit" class="btn btn-primary" form="detayEditForm">Kaydet</button>
             </div>
 
         </div>
@@ -134,31 +150,27 @@
 </div>
 
 <script>
-    $(document)
-        .off('submit', '.delete-detay-form')
-        .on('submit', '.delete-detay-form', function (e) {
-            if (!confirm("Bu kayıt silinsin mi?")) {
-                e.preventDefault();
-            }
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.delete-detay-form').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                if (!confirm('Bu kayıt silinsin mi?')) {
+                    e.preventDefault();
+                }
+            });
         });
 
-    $(document)
-        .off('click', '.edit-detay-btn')
-        .on('click', '.edit-detay-btn', function () {
-            const button = $(this);
-            $("#editDetayID").val(button.data('id'));
-            $("#editTarih").val(button.data('tarih'));
-            $("#editGorusulen").val(button.data('gorusulen'));
-            $("#editKekleyen").val(button.data('kekleyen'));
-            $("#editAciklama").val(button.data('aciklama'));
+        document.querySelectorAll('.edit-detay-btn').forEach(function (button) {
+            button.addEventListener('click', function () {
+                document.getElementById('editDetayID').value = button.dataset.id || '';
+                document.getElementById('editTarih').value = button.dataset.tarih || '';
+                document.getElementById('editGorusulen').value = button.dataset.gorusulen || '';
+                document.getElementById('editKekleyen').value = button.dataset.kekleyen || '';
+                document.getElementById('editAciklama').value = button.dataset.aciklama || '';
 
-            const modal = new bootstrap.Modal(document.getElementById('detayEditModal'));
-            modal.show();
+                const modalElement = document.getElementById('detayEditModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                modal.show();
+            });
         });
-
-    $(document)
-        .off('click', '#saveEditBtn')
-        .on('click', '#saveEditBtn', function () {
-            $("#detayEditForm").trigger('submit');
-        });
+    });
 </script>

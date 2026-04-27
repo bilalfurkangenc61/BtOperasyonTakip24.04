@@ -24,6 +24,23 @@ public sealed class MusteriController : Controller
             .Select(p => p.ParAdi!)
             .ToList();
 
+    private List<string> GetTalepSahibiDegerleri() =>
+        _context.Parametreler
+            .AsNoTracking()
+            .Where(p =>
+                (p.Tur == "TalepSahibi" || p.Tur == "TalepEden") &&
+                p.ParAdi != null &&
+                p.ParAdi != "")
+            .Select(p => p.ParAdi!)
+            .Concat(
+                _context.Musteriler
+                    .AsNoTracking()
+                    .Where(m => m.TalepSahibi != null && m.TalepSahibi != "")
+                    .Select(m => m.TalepSahibi!))
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+
     public MusteriController(AppDbContext context)
     {
         _context = context;
@@ -129,7 +146,7 @@ public sealed class MusteriController : Controller
 
         ViewData["Durumlar"] = GetParametreDegerleri("Durum");
         ViewData["Teknolojiler"] = GetParametreDegerleri("Teknoloji");
-        ViewData["TalepSahipleri"] = GetParametreDegerleri("TalepEden");
+        ViewData["TalepSahipleri"] = GetTalepSahibiDegerleri();
 
         return View(model);
     }
@@ -144,12 +161,7 @@ public sealed class MusteriController : Controller
             .Select(p => p.ParAdi!)
             .ToListAsync();
 
-        var talepSahipleri = await _context.Parametreler
-            .AsNoTracking()
-            .Where(p => p.Tur == "TalepEden" && p.ParAdi != null && p.ParAdi != "")
-            .OrderBy(p => p.ParAdi)
-            .Select(p => p.ParAdi!)
-            .ToListAsync();
+        var talepSahipleri = GetTalepSahibiDegerleri();
 
         var durumlar = await _context.Parametreler
             .AsNoTracking()

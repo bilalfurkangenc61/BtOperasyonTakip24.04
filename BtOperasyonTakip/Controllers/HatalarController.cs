@@ -11,7 +11,7 @@ using System.Text;
 
 namespace BtOperasyonTakip.Controllers
 {
-    [Authorize(Roles = AppRoles.Operasyon + "," + AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.Operasyon + "," + AppRoles.Admin + "," + AppRoles.Saha)]
     public class HatalarController : Controller
     {
         private readonly AppDbContext _context;

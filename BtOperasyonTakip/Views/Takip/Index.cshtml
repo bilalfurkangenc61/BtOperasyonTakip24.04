@@ -278,6 +278,8 @@
                             <option value="">Seçiniz</option>
                             <option value="Geliştirme">Geliştirme</option>
                             <option value="Eğitim">Eğitim</option>
+                             <option value="Entegrasyon">Entegrasyon</option>
+                             <option value="Hata Çözüm">Hata Çözüm</option>
                         </select>
                     </div>
 
@@ -288,7 +290,8 @@
 
                     <div class="col-md-3">
                         <label class="form-label">Talep Açan</label>
-                        <select name="TalepAcan" class="form-select">
+                        <input type="text" id="talepAcanSearch" class="form-control mb-2" placeholder="Yazarak ara..." autocomplete="off" />
+                        <select id="talepAcanSelect" name="TalepAcan" class="form-select">
                             <option value="">Seçiniz</option>
                             @foreach (var p in talepAcanList)
                             {
@@ -299,7 +302,8 @@
 
                     <div class="col-md-3">
                         <label class="form-label">Takip Eden</label>
-                        <select name="TakipEden" class="form-select">
+                        <input type="text" id="takipEdenSearch" class="form-control mb-2" placeholder="Yazarak ara..." autocomplete="off" />
+                        <select id="takipEdenSelect" name="TakipEden" class="form-select">
                             <option value="">Seçiniz</option>
                             @foreach (var p in takipEdenList)
                             {
@@ -660,6 +664,81 @@
             renderOptions('');
         }
 
+        function initializeFilterableSelect(searchInputId, selectId) {
+            const searchInput = document.getElementById(searchInputId);
+            const select = document.getElementById(selectId);
+            if (!searchInput || !select) return;
+
+            const allOptions = Array.from(select.options).map(option => ({
+                value: option.value,
+                text: option.text,
+                selected: option.selected
+            }));
+
+            const renderOptions = function (filterText) {
+                const normalizedFilter = (filterText || '').trim().toLocaleLowerCase('tr-TR');
+                const currentValue = select.value;
+                let hasSelectedMatch = false;
+                let firstMatchedValue = '';
+
+                select.innerHTML = '';
+
+                allOptions.forEach(option => {
+                    const isPlaceholder = option.value === '';
+                    const matches = isPlaceholder || option.text.toLocaleLowerCase('tr-TR').includes(normalizedFilter);
+
+                    if (!matches) return;
+
+                    const element = document.createElement('option');
+                    element.value = option.value;
+                    element.text = option.text;
+                    element.selected = option.value === currentValue;
+                    if (element.selected) {
+                        hasSelectedMatch = true;
+                    }
+
+                    if (!isPlaceholder && !firstMatchedValue) {
+                        firstMatchedValue = option.value;
+                    }
+
+                    select.appendChild(element);
+                });
+
+                if (select.options.length === 1 && select.options[0].value === '') {
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.text = 'Sonuç bulunamadı';
+                    select.appendChild(emptyOption);
+                }
+
+                if (normalizedFilter) {
+                    if (hasSelectedMatch) {
+                        select.value = currentValue;
+                    } else if (firstMatchedValue) {
+                        select.value = firstMatchedValue;
+                    }
+                } else {
+                    select.value = currentValue;
+                }
+            };
+
+            searchInput.addEventListener('input', function () {
+                renderOptions(this.value);
+            });
+
+            const form = select.closest('form');
+            if (form) {
+                form.addEventListener('reset', function () {
+                    setTimeout(function () {
+                        searchInput.value = '';
+                        renderOptions('');
+                    }, 0);
+                });
+            }
+
+            renderOptions('');
+        }
+
         const boardStatusFilter = document.getElementById('boardStatusFilter');
         if (boardStatusFilter) boardStatusFilter.addEventListener('change', applyBoardStatusFilter);
 
@@ -672,6 +751,8 @@
         });
 
         initializeMusteriSearch();
+        initializeFilterableSelect('talepAcanSearch', 'talepAcanSelect');
+        initializeFilterableSelect('takipEdenSearch', 'takipEdenSelect');
 
     </script>
 }

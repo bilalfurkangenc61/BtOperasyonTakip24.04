@@ -27,30 +27,47 @@ namespace BtOperasyonTakip.Controllers
 
         private bool IsSahaFamilyUser() => User.IsInRole("Saha") || User.IsInRole("KurumsalSaha");
 
-        private List<string> GetTicketKategorileri(bool fallbackToTickets = false)
+        private List<string> GetTicketDurumlari()
         {
-            var kategoriler = _context.Parametreler
-                .Where(p => p.Tur == "TicketKategori" && p.ParAdi != null && p.ParAdi != "")
-                .OrderBy(p => p.ParAdi)
+            return _context.Parametreler
+                .Where(p =>
+                    (p.Tur == "TicketDurum" || p.Tur == "Durum") &&
+                    p.ParAdi != null &&
+                    p.ParAdi != "")
                 .Select(p => p.ParAdi!)
+                .Concat(
+                    _context.Tickets
+                        .Where(t => t.Durum != null && t.Durum != "")
+                        .Select(t => t.Durum!))
+                .Distinct()
+                .OrderBy(d => d)
                 .ToList();
-
-            if (fallbackToTickets && kategoriler.Count == 0)
-            {
-                kategoriler = _context.Tickets
-                    .Where(t => t.Kategori != null && t.Kategori != "")
-                    .Select(t => t.Kategori!)
-                    .Distinct()
-                    .OrderBy(k => k)
-                    .ToList();
-            }
-
-            return kategoriler;
         }
 
-        private void LoadTicketKategorileri(bool fallbackToTickets = false)
+        private List<string> GetTicketTalepEdenleri()
         {
-            ViewBag.Kategoriler = GetTicketKategorileri(fallbackToTickets);
+            return _context.Parametreler
+                .Where(p =>
+                    (p.Tur == "TalepEden" || p.Tur == "TalepSahibi") &&
+                    p.ParAdi != null &&
+                    p.ParAdi != "")
+                .Select(p => p.ParAdi!)
+                .Concat(
+                    _context.Musteriler
+                        .Where(m => m.TalepSahibi != null && m.TalepSahibi != "")
+                        .Select(m => m.TalepSahibi!))
+                .Concat(
+                    _context.Tickets
+                        .Where(t => t.OlusturanKullaniciAdi != null && t.OlusturanKullaniciAdi != "")
+                        .Select(t => t.OlusturanKullaniciAdi!))
+                .Concat(
+                    _context.Users
+                        .Where(u => u.Role == "Saha" || u.Role == "KurumsalSaha")
+                        .Select(u => string.IsNullOrWhiteSpace(u.FullName) ? u.UserName : u.FullName!))
+                .Where(x => x != null && x != "")
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
         }
 
         public TicketController(AppDbContext context)
@@ -58,23 +75,23 @@ namespace BtOperasyonTakip.Controllers
             _context = context;
         }
 
-        public IActionResult Index(string? searchFirma, string? kategori)
+        public IActionResult Index(string? searchFirma, string? durum, string? talepEden)
         {
-            IQueryable<Ticket> query = _context.Tickets;
+            IQueryable<Ticket> baseQuery = _context.Tickets;
 
             if (IsSahaFamilyUser())
             {
                 var userId = GetCurrentUserId();
-                query = query.Where(t => t.OlusturanUserId == userId);
+                baseQuery = baseQuery.Where(t => t.OlusturanUserId == userId);
             }
             else if (User.IsInRole("Uyum"))
             {
-                query = query.Where(t => t.Durum == TicketDurumUyum);
+                baseQuery = baseQuery.Where(t => t.Durum == TicketDurumUyum);
             }
             else if (User.IsInRole("Operasyon"))
             {
                 var userId = GetCurrentUserId();
-                query = query.Where(t =>
+                baseQuery = baseQuery.Where(t =>
                     t.AtananOperasyonUserId == userId &&
                     (t.Durum == TicketDurumOperasyon1 ||
                      t.Durum == TicketDurumOperasyon2 ||
@@ -83,6 +100,11 @@ namespace BtOperasyonTakip.Controllers
                      t.Durum == TicketDurumMusteriKaydedildi ||
                      t.Durum == TicketDurumReddedildi));
             }
+
+            var durumlar = GetTicketDurumlari();
+            var talepEdenler = GetTicketTalepEdenleri();
+
+            IQueryable<Ticket> query = baseQuery;
 
             if (!string.IsNullOrWhiteSpace(searchFirma))
             {
@@ -93,9 +115,24 @@ namespace BtOperasyonTakip.Controllers
                     t.YazilimciSoyadi.Contains(searchFirma));
             }
 
-            if (!string.IsNullOrWhiteSpace(kategori))
+            if (!string.IsNullOrWhiteSpace(durum))
             {
-                query = query.Where(t => t.Kategori == kategori);
+                query = query.Where(t => t.Durum == durum);
+            }
+
+            if (!string.IsNullOrWhiteSpace(talepEden))
+            {
+                var selectedTalepEden = talepEden.Trim();
+                var matchingUserIds = _context.Users
+                    .Where(u =>
+                        (u.Role == "Saha" || u.Role == "KurumsalSaha") &&
+                        (string.IsNullOrWhiteSpace(u.FullName) ? u.UserName : u.FullName!) == selectedTalepEden)
+                    .Select(u => u.Id)
+                    .ToList();
+
+                query = query.Where(t =>
+                    t.OlusturanKullaniciAdi == selectedTalepEden ||
+                    matchingUserIds.Contains(t.OlusturanUserId));
             }
 
             if (User.IsInRole("Admin"))
@@ -113,11 +150,12 @@ namespace BtOperasyonTakip.Controllers
                 ViewBag.OperasyonUsers = operasyonUsers;
             }
 
-            LoadTicketKategorileri(fallbackToTickets: true);
-
             var tickets = query.OrderByDescending(t => t.OlusturmaTarihi).ToList();
             ViewBag.SearchFirma = searchFirma;
-            ViewBag.SelectedKategori = kategori;
+            ViewBag.SelectedDurum = durum;
+            ViewBag.SelectedTalepEden = talepEden;
+            ViewBag.Durumlar = durumlar;
+            ViewBag.TalepEdenler = talepEdenler;
 
             return View(tickets);
         }
@@ -128,8 +166,6 @@ namespace BtOperasyonTakip.Controllers
         {
             if (!IsSahaFamilyUser())
                 return Unauthorized();
-
-            LoadTicketKategorileri();
 
             return View();
         }
@@ -155,7 +191,6 @@ namespace BtOperasyonTakip.Controllers
 
             if (!ModelState.IsValid)
             {
-                LoadTicketKategorileri();
                 return View(ticket);
             }
 
@@ -173,28 +208,33 @@ namespace BtOperasyonTakip.Controllers
 
             if (!string.IsNullOrWhiteSpace(firmaAdi))
             {
-                var firmaVar = acikTickets.Any(t => Normalize(t.FirmaAdi) == firmaKey);
+                var firmaVar = acikTickets.Any(t =>
+                    t.FirmaAdi != null &&
+                    t.FirmaAdi.Trim().ToLower() == firmaKey);
                 if (firmaVar)
                     ModelState.AddModelError(nameof(ticket.FirmaAdi), "Bu firma adı ile açık bir ticket zaten var.");
             }
 
             if (!string.IsNullOrWhiteSpace(siteAdi))
             {
-                var siteVar = acikTickets.Any(t => Normalize(t.MusteriWebSitesi) == siteKey);
+                var siteVar = acikTickets.Any(t =>
+                    t.MusteriWebSitesi != null &&
+                    t.MusteriWebSitesi.Trim().ToLower() == siteKey);
                 if (siteVar)
                     ModelState.AddModelError(nameof(ticket.MusteriWebSitesi), "Bu web sitesi ile açık bir ticket zaten var.");
             }
 
             if (!string.IsNullOrWhiteSpace(mail))
             {
-                var mailVar = acikTickets.Any(t => Normalize(t.Mail) == mailKey);
+                var mailVar = acikTickets.Any(t =>
+                    t.Mail != null &&
+                    t.Mail.Trim().ToLower() == mailKey);
                 if (mailVar)
                     ModelState.AddModelError(nameof(ticket.Mail), "Bu mail adresi ile açık bir ticket zaten var.");
             }
 
             if (!ModelState.IsValid)
             {
-                LoadTicketKategorileri();
                 return View(ticket);
             }
 
@@ -206,7 +246,6 @@ namespace BtOperasyonTakip.Controllers
                     !string.Equals(ticket.MusteriTipi, "Bireysel", StringComparison.OrdinalIgnoreCase))
                 {
                     ModelState.AddModelError(nameof(ticket.MusteriTipi), "Müşteri tipi 'Kurumsal' veya 'Bireysel' olmalıdır.");
-                    LoadTicketKategorileri();
                     return View(ticket);
                 }
 
@@ -226,7 +265,6 @@ namespace BtOperasyonTakip.Controllers
                     if (test == null)
                     {
                         ModelState.AddModelError("", "Kurumsal ticket ataması için 'test' kullanıcısı bulunamadı (Operasyon rolünde olmalı, UserName = 'test').");
-                        LoadTicketKategorileri();
                         return View(ticket);
                     }
 
@@ -262,7 +300,6 @@ namespace BtOperasyonTakip.Controllers
             catch (Exception ex)
             {
                 ModelState.AddModelError("", $"Hata: {ex.Message}");
-                LoadTicketKategorileri();
                 return View(ticket);
             }
         }
@@ -535,9 +572,6 @@ namespace BtOperasyonTakip.Controllers
             if (request.TicketId <= 0)
                 return BadRequest(new { success = false, message = "Geçersiz Ticket ID." });
 
-            if (request.YeniOperasyonUserId <= 0)
-                return BadRequest(new { success = false, message = "Yeni operasyon seçiniz." });
-
             var neden = (request.Neden ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(neden))
                 return BadRequest(new { success = false, message = "Değişiklik nedeni zorunlu." });
@@ -549,35 +583,66 @@ namespace BtOperasyonTakip.Controllers
             if (ticket == null)
                 return NotFound(new { success = false, message = "Ticket bulunamadı." });
 
-            var newUser = _context.Users.FirstOrDefault(u => u.Id == request.YeniOperasyonUserId && u.Role == "Operasyon");
-            if (newUser == null)
-                return BadRequest(new { success = false, message = "Seçilen kullanıcı operasyon rolünde değil veya bulunamadı." });
-
             var oldAssigneeName = ticket.AtananOperasyonKullaniciAdi;
             var oldAssigneeId = ticket.AtananOperasyonUserId;
+            var oldStatus = ticket.Durum;
 
-            ticket.AtananOperasyonUserId = newUser.Id;
-            ticket.AtananOperasyonKullaniciAdi = newUser.FullName ?? newUser.UserName;
-            ticket.AtanmaTarihi = DateTime.UtcNow;
+            var assignmentChanged = false;
+            var statusChanged = false;
+
+            if (request.YeniOperasyonUserId > 0 && request.YeniOperasyonUserId != ticket.AtananOperasyonUserId)
+            {
+                var newUser = _context.Users.FirstOrDefault(u => u.Id == request.YeniOperasyonUserId && u.Role == "Operasyon");
+                if (newUser == null)
+                    return BadRequest(new { success = false, message = "Seçilen kullanıcı operasyon rolünde değil veya bulunamadı." });
+
+                ticket.AtananOperasyonUserId = newUser.Id;
+                ticket.AtananOperasyonKullaniciAdi = newUser.FullName ?? newUser.UserName;
+                ticket.AtanmaTarihi = DateTime.UtcNow;
+                assignmentChanged = true;
+            }
+
+            var yeniDurum = (request.YeniDurum ?? string.Empty).Trim();
+            if (!string.IsNullOrWhiteSpace(yeniDurum) && !string.Equals(ticket.Durum, yeniDurum, StringComparison.OrdinalIgnoreCase))
+            {
+                var gecerliDurumlar = GetTicketDurumlari();
+                if (!gecerliDurumlar.Contains(yeniDurum, StringComparer.OrdinalIgnoreCase))
+                    return BadRequest(new { success = false, message = "Seçilen durum geçerli değil." });
+
+                ticket.Durum = yeniDurum;
+                statusChanged = true;
+            }
+
+            if (!assignmentChanged && !statusChanged)
+                return BadRequest(new { success = false, message = "Kişi veya durum değişikliği yapmadınız." });
 
             var adminId = int.TryParse(User.FindFirst("UserId")?.Value, out var adminUid) ? adminUid : 0;
             var adminName = User.Identity?.Name ?? "Bilinmiyor";
 
-            _context.TicketAtamaLoglari.Add(new TicketAtamaLog
+            if (assignmentChanged)
             {
-                TicketId = ticket.Id,
-                EskiOperasyonUserId = oldAssigneeId,
-                EskiOperasyonKullaniciAdi = oldAssigneeName,
-                YeniOperasyonUserId = newUser.Id,
-                YeniOperasyonKullaniciAdi = ticket.AtananOperasyonKullaniciAdi,
-                DegisiklikNedeni = neden,
-                DegistirenUserId = adminId,
-                DegistirenKullaniciAdi = adminName,
-                DegisiklikTarihi = DateTime.UtcNow
-            });
+                _context.TicketAtamaLoglari.Add(new TicketAtamaLog
+                {
+                    TicketId = ticket.Id,
+                    EskiOperasyonUserId = oldAssigneeId,
+                    EskiOperasyonKullaniciAdi = oldAssigneeName,
+                    YeniOperasyonUserId = ticket.AtananOperasyonUserId ?? 0,
+                    YeniOperasyonKullaniciAdi = ticket.AtananOperasyonKullaniciAdi,
+                    DegisiklikNedeni = neden,
+                    DegistirenUserId = adminId,
+                    DegistirenKullaniciAdi = adminName,
+                    DegisiklikTarihi = DateTime.UtcNow
+                });
+            }
 
             _context.SaveChanges();
-            return Json(new { success = true, message = "✅ Atama güncellendi." });
+            var mesaj = assignmentChanged && statusChanged
+                ? $"✅ Kişi ve durum güncellendi. ({oldStatus} → {ticket.Durum})"
+                : assignmentChanged
+                    ? "✅ Kişi ataması güncellendi."
+                    : $"✅ Durum güncellendi. ({oldStatus} → {ticket.Durum})";
+
+            return Json(new { success = true, message = mesaj });
         }
 
         public sealed class Operasyon1DecideRequest
@@ -621,6 +686,7 @@ namespace BtOperasyonTakip.Controllers
         {
             public int TicketId { get; set; }
             public int YeniOperasyonUserId { get; set; }
+            public string? YeniDurum { get; set; }
             public string? Neden { get; set; }
         }
     }

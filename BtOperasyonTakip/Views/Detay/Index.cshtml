@@ -4,6 +4,12 @@
     var selectedMusteriId = Model.SelectedMusteriId;
     var sonDetaylar = Model.SonDetaylar ?? new Dictionary<int, BtOperasyonTakip.Models.Detay>();
     var musteriList = Model.Musteriler ?? new List<BtOperasyonTakip.Models.Musteri>();
+    var detayViewData = new ViewDataDictionary(ViewData)
+    {
+        ["MusteriID"] = Model.SelectedMusteriId,
+        ["MusteriAdi"] = Model.SelectedMusteriAdi,
+        ["KullaniciSecenekleri"] = Model.KullaniciSecenekleri
+    };
     var currentPage = Model.Page <= 0 ? 1 : Model.Page;
     var pageSize = Model.PageSize <= 0 ? 10 : Model.PageSize;
     var totalPages = Model.TotalPages <= 0 ? 1 : Model.TotalPages;
@@ -365,7 +371,7 @@
             <strong>Seçilen Müşteri:</strong> @Model.SelectedMusteriAdi
         </div>
 
-        @await Html.PartialAsync("_DetayListesi", Model.SelectedMusteriDetaylar)
+        @await Html.PartialAsync("_DetayListesi", Model.SelectedMusteriDetaylar, detayViewData)
     }
 </div>
 

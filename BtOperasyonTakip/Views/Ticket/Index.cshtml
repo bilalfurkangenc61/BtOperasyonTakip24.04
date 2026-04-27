@@ -165,25 +165,38 @@
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <div class="fw-semibold">Filtreler</div>
-                <div class="text-muted small">Firma, kişi veya kategori bazlı hızlı arama yapın.</div>
+                <div class="text-muted small">Firma, durum veya talep eden kişiye göre hızlı filtreleme yapın.</div>
             </div>
         </div>
         <div class="card-body">
             <form asp-action="Index" method="get" class="row g-3 align-items-end">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label small text-muted mb-1">Arama</label>
                     <input type="text" name="searchFirma" class="form-control ticket-search-input"
                            placeholder="🔍 Firma adı, yazılımcı adı ile ara..."
                            value="@ViewBag.SearchFirma" />
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small text-muted mb-1">Kategori</label>
-                    <select name="kategori" class="form-select">
-                        <option value="">Kategoriye göre filtrele</option>
-                        @foreach (var kategori in (IEnumerable<string>)ViewBag.Kategoriler ?? new List<string>())
+                    <label class="form-label small text-muted mb-1">Durum</label>
+                    <input type="text" id="ticketDurumSearch" class="form-control mb-2" placeholder="Durum ara..." autocomplete="off" />
+                    <select id="ticketDurumSelect" name="durum" class="form-select">
+                        <option value="">Duruma göre filtrele</option>
+                        @foreach (var durum in (IEnumerable<string>)ViewBag.Durumlar ?? new List<string>())
                         {
-                            var isSelected = ((ViewBag.SelectedKategori ?? "").ToString().Trim().ToLowerInvariant() == (kategori ?? "").Trim().ToLowerInvariant());
-                            <option value="@kategori" selected="@(isSelected ? "selected" : null)">@kategori</option>
+                            var isSelected = ((ViewBag.SelectedDurum ?? "").ToString().Trim().ToLowerInvariant() == (durum ?? "").Trim().ToLowerInvariant());
+                            <option value="@durum" selected="@(isSelected ? "selected" : null)">@durum</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1">Talep Eden</label>
+                    <input type="text" id="ticketTalepEdenSearch" class="form-control mb-2" placeholder="Talep eden ara..." autocomplete="off" />
+                    <select id="ticketTalepEdenSelect" name="talepEden" class="form-select">
+                        <option value="">Talep edene göre filtrele</option>
+                        @foreach (var talepEden in (IEnumerable<string>)ViewBag.TalepEdenler ?? new List<string>())
+                        {
+                            var isSelected = ((ViewBag.SelectedTalepEden ?? "").ToString().Trim().ToLowerInvariant() == (talepEden ?? "").Trim().ToLowerInvariant());
+                            <option value="@talepEden" selected="@(isSelected ? "selected" : null)">@talepEden</option>
                         }
                     </select>
                 </div>
@@ -191,7 +204,7 @@
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-search"></i> Ara
                     </button>
-                    @if (!string.IsNullOrWhiteSpace(ViewBag.SearchFirma) || !string.IsNullOrWhiteSpace(ViewBag.SelectedKategori))
+                    @if (!string.IsNullOrWhiteSpace(ViewBag.SearchFirma) || !string.IsNullOrWhiteSpace(ViewBag.SelectedDurum) || !string.IsNullOrWhiteSpace(ViewBag.SelectedTalepEden))
                     {
                         <a asp-action="Index" class="btn btn-secondary w-100 mt-2">
                             <i class="bi bi-arrow-counterclockwise"></i> Temizle
@@ -387,12 +400,13 @@
                     @if (User.IsInRole("Admin"))
                     {
                         var operasyonUsers = ViewBag.OperasyonUsers as IEnumerable<dynamic> ?? new List<dynamic>();
+                        var durumlar = ViewBag.Durumlar as IEnumerable<string> ?? new List<string>();
                         <hr />
                         <div class="row g-2">
                             <div class="col-12">
-                                <label class="fw-bold">Atamayı Değiştir (Admin)</label>
+                                <label class="fw-bold">Kişi / Durum Ata (Admin)</label>
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <select id="adminOperasyonUserSelect" class="form-select form-select-sm">
                                     <option value="">Operasyon seçiniz</option>
                                     @foreach (var op in operasyonUsers)
@@ -401,11 +415,20 @@
                                     }
                                 </select>
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-md-3">
+                                <select id="adminDurumSelect" class="form-select form-select-sm">
+                                    <option value="">Durum seçiniz</option>
+                                    @foreach (var durum in durumlar)
+                                    {
+                                        <option value="@durum">@durum</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <input type="text" id="adminOperasyonNeden" class="form-control form-control-sm" placeholder="Değişiklik nedeni" />
                             </div>
                             <div class="col-md-2 d-grid">
-                                <button type="button" class="btn btn-sm btn-warning" id="btnAdminChangeAssignment">Atamayı Güncelle</button>
+                                <button type="button" class="btn btn-sm btn-warning" id="btnAdminChangeAssignment">Güncelle</button>
                             </div>
                         </div>
                     }
@@ -474,6 +497,85 @@
         const __sahaCanliModalElement = document.getElementById("sahaCanliModal");
         const __sahaCanliModal = __sahaCanliModalElement ? new bootstrap.Modal(__sahaCanliModalElement) : null;
 
+        function initializeFilterableSelect(searchInputId, selectId) {
+            const searchInput = document.getElementById(searchInputId);
+            const select = document.getElementById(selectId);
+            if (!searchInput || !select) return;
+
+            const allOptions = Array.from(select.options).map(option => ({
+                value: option.value,
+                text: option.text,
+                selected: option.selected
+            }));
+
+            const renderOptions = function (filterText) {
+                const normalizedFilter = (filterText || '').trim().toLocaleLowerCase('tr-TR');
+                const currentValue = select.value;
+                let hasSelectedMatch = false;
+                let firstMatchedValue = '';
+
+                select.innerHTML = '';
+
+                allOptions.forEach(option => {
+                    const isPlaceholder = option.value === '';
+                    const matches = isPlaceholder || option.text.toLocaleLowerCase('tr-TR').includes(normalizedFilter);
+
+                    if (!matches) return;
+
+                    const element = document.createElement('option');
+                    element.value = option.value;
+                    element.text = option.text;
+                    element.selected = option.value === currentValue;
+
+                    if (element.selected) {
+                        hasSelectedMatch = true;
+                    }
+
+                    if (!isPlaceholder && !firstMatchedValue) {
+                        firstMatchedValue = option.value;
+                    }
+
+                    select.appendChild(element);
+                });
+
+                if (select.options.length === 1 && select.options[0].value === '') {
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.text = 'Sonuç bulunamadı';
+                    select.appendChild(emptyOption);
+                }
+
+                if (normalizedFilter) {
+                    if (hasSelectedMatch) {
+                        select.value = currentValue;
+                    } else if (firstMatchedValue) {
+                        select.value = firstMatchedValue;
+                    }
+                } else {
+                    select.value = currentValue;
+                }
+            };
+
+            searchInput.addEventListener('input', function () {
+                renderOptions(this.value);
+            });
+
+            const form = select.closest('form');
+            if (form) {
+                form.addEventListener('reset', function () {
+                    setTimeout(function () {
+                        searchInput.value = '';
+                        renderOptions('');
+                    }, 0);
+                });
+            }
+
+            renderOptions('');
+        }
+
+        initializeFilterableSelect('ticketDurumSearch', 'ticketDurumSelect');
+        initializeFilterableSelect('ticketTalepEdenSearch', 'ticketTalepEdenSelect');
+
         $(document).on("click", ".view-detail-btn", function () {
             const $btn = $(this);
 
@@ -527,15 +629,31 @@
             } else {
                 $("#adminOperasyonUserSelect").val("");
             }
+
+            const mevcutDurum = $btn.data("status") || "";
+            if (mevcutDurum) {
+                if ($(`#adminDurumSelect option[value='${mevcutDurum.replace(/'/g, "\\'")}']`).length === 0) {
+                    $("#adminDurumSelect").append(new Option(mevcutDurum, mevcutDurum));
+                }
+                $("#adminDurumSelect").val(mevcutDurum);
+            } else {
+                $("#adminDurumSelect").val("");
+            }
         });
 
         $(document).on("click", "#btnAdminChangeAssignment", function () {
             const ticketId = parseInt(window.__currentTicketId || "0");
             const yeniUserId = parseInt($("#adminOperasyonUserSelect").val() || "0");
+            const yeniDurum = ($("#adminDurumSelect").val() || "").toString().trim();
             const neden = $("#adminOperasyonNeden").val().trim();
 
-            if (!ticketId || !yeniUserId) {
-                alert("Ticket veya yeni operasyon kullanıcısı seçilmedi.");
+            if (!ticketId) {
+                alert("Ticket seçilmedi.");
+                return;
+            }
+
+            if (!yeniUserId && !yeniDurum) {
+                alert("Kişi veya durum seçmelisiniz.");
                 return;
             }
 
@@ -548,7 +666,7 @@
                 url: "/Ticket/ChangeAssignment",
                 type: "POST",
                 contentType: "application/json",
-                data: JSON.stringify({ TicketId: ticketId, YeniOperasyonUserId: yeniUserId, Neden: neden }),
+                data: JSON.stringify({ TicketId: ticketId, YeniOperasyonUserId: yeniUserId, YeniDurum: yeniDurum, Neden: neden }),
                 success: function (res) {
                     alert(res.message || "İşlem tamamlandı.");
                     if (res.success) {

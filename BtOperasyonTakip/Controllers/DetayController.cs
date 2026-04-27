@@ -20,6 +20,18 @@ namespace BtOperasyonTakip.Controllers
             _context = context;
         }
 
+        private List<string> GetKullaniciSecenekleri()
+        {
+            return _context.Users
+                .AsNoTracking()
+                .Select(x => string.IsNullOrWhiteSpace(x.FullName) ? x.UserName : x.FullName!)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+        }
+
         private IActionResult RedirectToLocalOr(string? returnUrl, string action, object? routeValues = null)
         {
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -150,6 +162,7 @@ namespace BtOperasyonTakip.Controllers
             {
                 Musteriler = musteriler,
                 SonDetaylar = sonDetaylar,
+                KullaniciSecenekleri = GetKullaniciSecenekleri(),
                 TeknolojiSecenekleri = _context.Musteriler
                     .AsNoTracking()
                     .Where(x => !string.IsNullOrWhiteSpace(x.Teknoloji))
@@ -513,6 +526,7 @@ namespace BtOperasyonTakip.Controllers
                 .Where(x => x.MusteriID == musteriId)
                 .Select(x => x.Firma)
                 .FirstOrDefault();
+            ViewBag.KullaniciSecenekleri = GetKullaniciSecenekleri();
             return PartialView("_DetayListesi", detaylar);
         }
 
@@ -532,6 +546,10 @@ namespace BtOperasyonTakip.Controllers
                 {
                     detay.Tarih = DateTime.Now;
                 }
+
+                detay.Gorusulen = detay.Gorusulen?.Trim();
+                detay.Aciklama = detay.Aciklama?.Trim();
+                detay.Kekleyen = detay.Kekleyen?.Trim();
 
                 _context.Detaylar.Add(detay);
                 _context.SaveChanges();
@@ -555,6 +573,10 @@ namespace BtOperasyonTakip.Controllers
                 TempData["DetayError"] = "Detay kaydı bulunamadı.";
                 return RedirectToLocalOr(returnUrl, "Index", new { musteriId = detay.MusteriID });
             }
+
+            detay.Gorusulen = detay.Gorusulen?.Trim();
+            detay.Aciklama = detay.Aciklama?.Trim();
+            detay.Kekleyen = detay.Kekleyen?.Trim();
 
             existing.Tarih = detay.Tarih;
             existing.Gorusulen = detay.Gorusulen;
