@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <Folder Include="Pages\Auth\" />
+    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

@@ -238,14 +238,12 @@
                     <tr>
                         <th>#</th>
                         <th>Firma</th>
-                        <th>Kategori</th>
                         <th>Müşteri Web Sitesi</th>
                         <th>Yazılımcı</th>
                         <th>Atanan Operasyon</th>
                         <th>📧 Mail</th>
                         <th>İrtibat</th>
                         <th>Teknoloji</th>
-                        <th>Durum</th>
                         <th>Uyum Kararı Veren</th>
                         <th>Oluşturan</th>
                         <th>Tarih</th>
@@ -269,7 +267,6 @@
                         <tr>
                             <td><strong>@ticket.Id</strong></td>
                             <td>@ticket.FirmaAdi</td>
-                            <td>@(string.IsNullOrWhiteSpace(ticket.Kategori) ? "-" : ticket.Kategori)</td>
                             <td>
                                 <a href="@ticket.MusteriWebSitesi" target="_blank" class="text-decoration-none">
                                     @(ticket.MusteriWebSitesi.Length > 30 ? ticket.MusteriWebSitesi.Substring(0, 30) + "..." : ticket.MusteriWebSitesi)
@@ -302,7 +299,6 @@
                                     <span class="badge bg-light text-dark">Seçilmedi</span>
                                 }
                             </td>
-                            <td><span class="badge ticket-badge @durumBadgeClass">@ticket.Durum</span></td>
                             <td>@ticket.UyumOnaylayanKullaniciAdi</td>
                             <td>@ticket.OlusturanKullaniciAdi</td>
                             <td>@ticket.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>

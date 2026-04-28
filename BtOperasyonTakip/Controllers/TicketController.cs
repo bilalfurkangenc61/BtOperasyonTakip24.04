@@ -371,6 +371,7 @@ namespace BtOperasyonTakip.Controllers
                     {
                         JiraId = jiraId,
                         TalepKonusu = talepKonusu,
+                        TalepTuru = "Entegrasyon",
                         TalepAcan = talepAcan,
                         Durum = "Beklemede",
                         TakipEden = ticket.AtananOperasyonKullaniciAdi
@@ -378,6 +379,7 @@ namespace BtOperasyonTakip.Controllers
                 }
                 else
                 {
+                    existing.TalepTuru = "Entegrasyon";
                     existing.Durum = "Beklemede";
                     if (string.IsNullOrWhiteSpace(existing.TalepKonusu))
                         existing.TalepKonusu = talepKonusu;

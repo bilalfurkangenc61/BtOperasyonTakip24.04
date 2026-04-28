@@ -548,18 +548,36 @@
             $(document).on('click', '.edit-btn', function (e) {
                 e.stopPropagation();
 
-                const row = $(this).closest('tr');
-                $('#editMusteriId').val($(this).data('id'));
-                $('#editFirma').val(row.find('td').eq(1).text().trim());
-                $('#editFirmaYetkilisi').val(row.find('td').eq(2).text().trim());
-                $('#editTelefon').val(row.find('td').eq(3).text().trim());
-                $('#editSiteUrl').val(row.find('td').eq(4).find('a').attr('href') || '');
-                $('#editTeknoloji').val(row.find('td').eq(5).text().trim());
-                $('#editDurum').val(row.find('td').eq(6).text().trim());
-                $('#editTalepSahibi').val(row.find('td').eq(8).text().trim());
-                $('#editAciklama').val(row.find('td').eq(11).find('span').attr('title') || row.find('td').eq(11).text().trim());
+                const id = Number($(this).data('id'));
+                if (!id) return;
 
-                $('#editMusteriModal').modal('show');
+                $('#editMusteriForm')[0].reset();
+                $('#editMusteriId').val(id);
+
+                fetch(`/Detay/GetMusteri?id=${id}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Müşteri bilgileri alınamadı.');
+                        }
+
+                        return response.json();
+                    })
+                    .then(m => {
+                        $('#editMusteriId').val(m.musteriID ?? id);
+                        $('#editFirma').val(m.firma ?? '');
+                        $('#editFirmaYetkilisi').val(m.firmaYetkilisi ?? '');
+                        $('#editTelefon').val(m.telefon ?? '');
+                        $('#editSiteUrl').val(m.siteUrl ?? '');
+                        $('#editTeknoloji').val(m.teknoloji ?? '');
+                        $('#editDurum').val(m.durum ?? '');
+                        $('#editTalepSahibi').val(m.talepSahibi ?? '');
+                        $('#editAciklama').val(m.aciklama ?? '');
+
+                        $('#editMusteriModal').modal('show');
+                    })
+                    .catch(() => {
+                        alert('Müşteri bilgileri yüklenemedi. Lütfen tekrar deneyin.');
+                    });
             });
 
             $('#openCreateMusteriModal').on('click', function () {
