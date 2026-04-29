@@ -162,13 +162,19 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Excel Ay</label>
+                        <label class="form-label">Excel Ay (boş = Tüm Aylar)</label>
                         <input id="exportMonth" type="month" class="form-control" />
                     </div>
 
-                    <div class="col-md-3 d-grid">
+                    <div class="col-md-2 d-grid">
                         <button id="btnExportDetayMonth" type="button" class="btn btn-success">
-                            Bu Ay Excel İndir
+                            Excel İndir
+                        </button>
+                    </div>
+
+                    <div class="col-md-1 d-grid">
+                        <button id="btnExportDetayAll" type="button" class="btn btn-outline-success">
+                            Tüm Aylar
                         </button>
                     </div>
 
@@ -494,16 +500,6 @@
                 $('#exportMonth').val(`${now.getFullYear()}-${mm}`);
             }
 
-            $('#btnExportDetayMonth').on('click', function () {
-                const month = String($('#exportMonth').val() ?? '').trim();
-                if (!month) {
-                    alert('Lütfen bir ay seçin.');
-                    return;
-                }
-
-                window.location.href = `/Detay/ExportExcelByMonth?month=${encodeURIComponent(month)}`;
-            });
-
             $('.auto-submit-filter').on('change', function () {
                 $('#detayFilterForm').trigger('submit');
             });
@@ -566,15 +562,52 @@
                 const id = Number($(this).data('id'));
 
                 if (confirm("Silinsin mi?")) {
-                    fetch(`/Detay/DeleteMusteri/${id}`, { method: 'DELETE' })
-                        .then(r => r.json())
+                    fetch('/Detay/DeleteMusteri', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: `id=${encodeURIComponent(id)}`
+                    })
+                        .then(async r => {
+                            const text = await r.text();
+                            let data = null;
+
+                            try {
+                                data = JSON.parse(text);
+                            }
+                            catch {
+                                throw new Error(text || 'Beklenmeyen sunucu yanıtı alındı.');
+                            }
+
+                            if (!r.ok) {
+                                throw new Error(data.message || 'Silme işlemi başarısız oldu.');
+                            }
+
+                            return data;
+                        })
                         .then(d => {
                             alert(d.message);
                             if (d.success) {
                                 window.location.reload();
                             }
-                        });
+                        })
+                        .catch(err => alert(err.message || 'Silme işlemi sırasında bir hata oluştu.'));
                 }
+            });
+
+            $('#btnExportDetayMonth').on('click', function () {
+                const month = String($('#exportMonth').val() ?? '').trim();
+                if (!month) {
+                    alert('Lütfen bir ay seçin veya Tüm Aylar butonunu kullanın.');
+                    return;
+                }
+                window.location.href = `/Detay/ExportExcelByMonth?month=${encodeURIComponent(month)}`;
+            });
+
+            $('#btnExportDetayAll').on('click', function () {
+                window.location.href = '/Detay/ExportExcelByMonth?month=all';
             });
 
         });

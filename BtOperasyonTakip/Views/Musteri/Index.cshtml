@@ -591,6 +591,45 @@
                 }
             });
 
+            $(document).on('click', '.delete-btn', function (e) {
+                e.stopPropagation();
+                const id = Number($(this).data('id'));
+                if (!id) return;
+
+                if (confirm("Bu müşteriyi ve tüm detaylarını silmek istediğinizden emin misiniz?")) {
+                    fetch('/Detay/DeleteMusteri', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: `id=${encodeURIComponent(id)}`
+                    })
+                        .then(async r => {
+                            const text = await r.text();
+                            let data = null;
+
+                            try {
+                                data = JSON.parse(text);
+                            }
+                            catch {
+                                throw new Error(text || 'Beklenmeyen sunucu yanıtı alındı.');
+                            }
+
+                            if (!r.ok) {
+                                throw new Error(data.message || 'Silme işlemi başarısız oldu.');
+                            }
+
+                            return data;
+                        })
+                        .then(d => {
+                            alert(d.message);
+                            if (d.success) window.location.reload();
+                        })
+                        .catch(err => alert(err.message || 'Silme işlemi sırasında bir hata oluştu.'));
+                }
+            });
+
         });
     </script>
 }

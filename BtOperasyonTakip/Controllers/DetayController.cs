@@ -200,19 +200,24 @@ namespace BtOperasyonTakip.Controllers
         [HttpGet]
         public IActionResult ExportExcelByMonth(string? month)
         {
-            if (string.IsNullOrWhiteSpace(month))
-                return BadRequest("Ay bilgisi zorunlu. Örn: 2026-02");
+            bool tumAylar = string.IsNullOrWhiteSpace(month) || string.Equals(month.Trim(), "all", StringComparison.OrdinalIgnoreCase);
+            DateTime monthStart = default;
 
-            if (!DateTime.TryParseExact(month.Trim(), "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var monthStart))
+            if (!tumAylar && !DateTime.TryParseExact(month!.Trim(), "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out monthStart))
                 return BadRequest("Geçersiz ay formatı. Örn: 2026-02");
 
-            var start = new DateTime(monthStart.Year, monthStart.Month, 1, 0, 0, 0);
-            var end = start.AddMonths(1);
-
-            var detaylar = _context.Detaylar
+            IQueryable<Detay> sorgu = _context.Detaylar
                 .AsNoTracking()
-                .Include(x => x.Musteri)
-                .Where(x => x.Tarih >= start && x.Tarih < end)
+                .Include(x => x.Musteri);
+
+            if (!tumAylar)
+            {
+                var start = new DateTime(monthStart.Year, monthStart.Month, 1, 0, 0, 0);
+                var end = start.AddMonths(1);
+                sorgu = sorgu.Where(x => x.Tarih >= start && x.Tarih < end);
+            }
+
+            var detaylar = sorgu
                 .OrderBy(x => x.Musteri!.Firma)
                 .ThenByDescending(x => x.Tarih)
                 .ThenByDescending(x => x.DetayID)
@@ -239,7 +244,8 @@ namespace BtOperasyonTakip.Controllers
                     CreateColumn(3, 3, 20),
                     CreateColumn(4, 4, 34),
                     CreateColumn(5, 5, 60),
-                    CreateColumn(6, 6, 22)
+                    CreateColumn(6, 6, 22),
+                    CreateColumn(7, 7, 24)
                 ));
 
                 worksheet.Append(sheetData);
@@ -252,7 +258,8 @@ namespace BtOperasyonTakip.Controllers
                     CreateTextCell("C", currentRow, "Tarih Saat", 1),
                     CreateTextCell("D", currentRow, "İş / Görüşülen", 1),
                     CreateTextCell("E", currentRow, "Açıklama", 1),
-                    CreateTextCell("F", currentRow, "Ekleyen", 1)
+                    CreateTextCell("F", currentRow, "Ekleyen", 1),
+                    CreateTextCell("G", currentRow, "Saha Sorumlusu", 1)
                 );
                 sheetData.Append(header);
 
@@ -267,14 +274,15 @@ namespace BtOperasyonTakip.Controllers
                         CreateTextCell("C", currentRow, detay.Tarih.ToString("dd.MM.yyyy HH:mm"), 0),
                         CreateTextCell("D", currentRow, detay.Gorusulen, 0),
                         CreateTextCell("E", currentRow, detay.Aciklama, 0),
-                        CreateTextCell("F", currentRow, detay.Kekleyen, 0)
+                        CreateTextCell("F", currentRow, detay.Kekleyen, 0),
+                        CreateTextCell("G", currentRow, detay.Musteri?.TalepSahibi, 0)
                     );
 
                     sheetData.Append(row);
                 }
 
                 var lastRowIndex = currentRow == 1 ? 1U : currentRow;
-                var filterRange = $"A1:F{lastRowIndex}";
+                var filterRange = $"A1:G{lastRowIndex}";
                 worksheet.Append(new AutoFilter { Reference = filterRange });
 
                 if (detaylar.Any())
@@ -298,8 +306,9 @@ namespace BtOperasyonTakip.Controllers
                         new TableColumn { Id = 3U, Name = "Tarih Saat" },
                         new TableColumn { Id = 4U, Name = "İş / Görüşülen" },
                         new TableColumn { Id = 5U, Name = "Açıklama" },
-                        new TableColumn { Id = 6U, Name = "Ekleyen" }
-                    ) { Count = 6U });
+                        new TableColumn { Id = 6U, Name = "Ekleyen" },
+                        new TableColumn { Id = 7U, Name = "Saha Sorumlusu" }
+                    ) { Count = 7U });
 
                     tableDefinitionPart.Table.AppendChild(new TableStyleInfo
                     {
@@ -338,10 +347,11 @@ namespace BtOperasyonTakip.Controllers
             }
 
             ms.Position = 0;
+            var dosyaAdi = tumAylar ? "Detaylar_TumAylar.xlsx" : $"Detaylar_{monthStart:yyyy-MM}.xlsx";
             return File(
                 ms.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"Detaylar_{monthStart:yyyy-MM}.xlsx");
+                dosyaAdi);
         }
 
         [HttpPost]
@@ -482,34 +492,44 @@ namespace BtOperasyonTakip.Controllers
             }
         }
 
+        [HttpDelete]
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult DeleteMusteri(int id, string? returnUrl)
+        public IActionResult DeleteMusteri(int id)
         {
             try
             {
                 var musteri = _context.Musteriler
                     .Include(m => m.Detaylar)
+                    .Include(m => m.DurumGecmisi)
                     .FirstOrDefault(m => m.MusteriID == id);
 
                 if (musteri == null)
-                    return NotFound();
+                    return Json(new { success = false, message = "Müşteri bulunamadı." });
+
+                // Ticket.MusteriID → null
+                var ilgiliTicketlar = _context.Tickets.Where(t => t.MusteriID == id).ToList();
+                foreach (var t in ilgiliTicketlar)
+                    t.MusteriID = null;
+
+                // JiraTask.MusteriID → null
+                var ilgiliJiralar = _context.JiraTasks.Where(j => j.MusteriID == id).ToList();
+                foreach (var j in ilgiliJiralar)
+                    j.MusteriID = null;
+
+                if (musteri.DurumGecmisi != null && musteri.DurumGecmisi.Any())
+                    _context.MusteriDurumGecmisleri.RemoveRange(musteri.DurumGecmisi);
 
                 if (musteri.Detaylar != null && musteri.Detaylar.Any())
-                {
                     _context.Detaylar.RemoveRange(musteri.Detaylar);
-                }
 
                 _context.Musteriler.Remove(musteri);
                 _context.SaveChanges();
 
-                TempData["MusteriOk"] = "Müşteri başarıyla silindi!";
-                return RedirectToLocalOr(returnUrl, "Index", new { controller = "Musteri" });
+                return Json(new { success = true, message = "Müşteri başarıyla silindi!" });
             }
             catch (Exception ex)
             {
-                TempData["MusteriError"] = "Silme sırasında hata: " + ex.Message;
-                return RedirectToLocalOr(returnUrl, "Index", new { controller = "Musteri" });
+                return Json(new { success = false, message = "Silme sırasında hata: " + ex.Message });
             }
         }
 
