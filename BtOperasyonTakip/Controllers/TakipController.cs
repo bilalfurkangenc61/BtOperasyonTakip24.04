@@ -3,6 +3,7 @@ using BtOperasyonTakip.Models;
 using BtOperasyonTakip.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -29,6 +30,29 @@ namespace BtOperasyonTakip.Controllers
                 return LocalRedirect(returnUrl);
 
             return RedirectToAction(nameof(Index), routeValues);
+        }
+
+        private string? RemoveQueryParametersFromLocalUrl(string? returnUrl, params string[] parameterNames)
+        {
+            if (string.IsNullOrWhiteSpace(returnUrl) || !Url.IsLocalUrl(returnUrl) || parameterNames == null || parameterNames.Length == 0)
+                return returnUrl;
+
+            var hashIndex = returnUrl.IndexOf('#');
+            var hashPart = hashIndex >= 0 ? returnUrl[hashIndex..] : string.Empty;
+            var pathAndQuery = hashIndex >= 0 ? returnUrl[..hashIndex] : returnUrl;
+
+            var queryIndex = pathAndQuery.IndexOf('?');
+            if (queryIndex < 0)
+                return returnUrl;
+
+            var path = pathAndQuery[..queryIndex];
+            var query = QueryHelpers.ParseQuery(pathAndQuery[queryIndex..]);
+            var filteredQuery = query
+                .Where(x => !parameterNames.Contains(x.Key, StringComparer.OrdinalIgnoreCase))
+                .SelectMany(x => x.Value, (x, value) => new KeyValuePair<string, string?>(x.Key, value));
+
+            var newQueryString = QueryString.Create(filteredQuery).ToString();
+            return $"{path}{newQueryString}{hashPart}";
         }
 
         private List<string> GetKullaniciSecenekleri()
@@ -109,7 +133,7 @@ namespace BtOperasyonTakip.Controllers
         }
 
         [HttpGet]
-        public IActionResult Index(string? q, int? selectedTaskId = null, int page = 1, int pageSize = DefaultPageSize)
+        public IActionResult Index(string? q, string? kisi = null, int? selectedTaskId = null, int page = 1, int pageSize = DefaultPageSize)
         {
             page = page < 1 ? 1 : page;
             pageSize = pageSize < 1 ? DefaultPageSize : pageSize;
@@ -117,6 +141,7 @@ namespace BtOperasyonTakip.Controllers
 
             var talepAcanList = GetTalepAcanSecenekleri();
             var operasyonKullaniciList = GetOperasyonKullaniciSecenekleri();
+            kisi = (kisi ?? string.Empty).Trim();
 
             var musteriList = _context.Musteriler
                 .AsNoTracking()
@@ -141,6 +166,12 @@ namespace BtOperasyonTakip.Controllers
                     (t.Durum ?? "").ToLower().Contains(qq));
             }
 
+            if (!string.IsNullOrWhiteSpace(kisi))
+            {
+                var selectedKisi = kisi.ToLowerInvariant();
+                query = query.Where(t => (t.TakipEden ?? "").ToLower() == selectedKisi);
+            }
+
             query = query.OrderByDescending(x => x.OlusturmaTarihi);
 
             var totalCount = query.Count();
@@ -148,6 +179,10 @@ namespace BtOperasyonTakip.Controllers
             var paged = query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .ToList();
+
+            var dokumanIletildiTasks = paged
+                .Where(t => (t.Durum ?? "").Trim().Equals("Döküman İletildi", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
            
@@ -175,6 +210,9 @@ namespace BtOperasyonTakip.Controllers
             }
 
             ViewBag.KullaniciSecenekleri = operasyonKullaniciList;
+            ViewBag.KisiSecenekleri = operasyonKullaniciList;
+            ViewBag.SelectedKisi = kisi;
+            ViewBag.DokumanIletildiTasks = dokumanIletildiTasks;
             return View(model);
         }
 
@@ -280,7 +318,8 @@ namespace BtOperasyonTakip.Controllers
 
             AddYorumVeMusteriDetay(task, yorum, ekleyen);
             TempData["JiraOk"] = "Yorum eklendi.";
-            return RedirectToLocalOrIndex(returnUrl);
+            var redirectUrl = RemoveQueryParametersFromLocalUrl(returnUrl, "selectedTaskId", "focusDetail");
+            return RedirectToLocalOrIndex(redirectUrl);
         }
 
         [HttpPost]
@@ -470,13 +509,14 @@ namespace BtOperasyonTakip.Controllers
         }
 
         [HttpGet]
-        public IActionResult ExportExcelGrouped(string? q)
+        public IActionResult ExportExcelGrouped(string? q, string? kisi = null)
         {
             var query = _context.JiraTasks
                 .AsNoTracking()
                 .AsQueryable();
 
             q = (q ?? "").Trim();
+            kisi = (kisi ?? string.Empty).Trim();
             if (!string.IsNullOrWhiteSpace(q))
             {
                 var qq = q.ToLowerInvariant();
@@ -487,6 +527,12 @@ namespace BtOperasyonTakip.Controllers
                     (t.TalepAcan ?? "").ToLower().Contains(qq) ||
                     (t.TakipEden ?? "").ToLower().Contains(qq) ||
                     (t.Durum ?? "").ToLower().Contains(qq));
+            }
+
+            if (!string.IsNullOrWhiteSpace(kisi))
+            {
+                var selectedKisi = kisi.ToLowerInvariant();
+                query = query.Where(t => (t.TakipEden ?? "").ToLower() == selectedKisi);
             }
 
             var rows = query
@@ -526,6 +572,12 @@ namespace BtOperasyonTakip.Controllers
                     (y.JiraTask.Durum ?? "").ToLower().Contains(qq) ||
                     (y.YorumMetni ?? "").ToLower().Contains(qq) ||
                     (y.Ekleyen ?? "").ToLower().Contains(qq));
+            }
+
+            if (!string.IsNullOrWhiteSpace(kisi))
+            {
+                var selectedKisi = kisi.ToLowerInvariant();
+                yorumQuery = yorumQuery.Where(y => (y.JiraTask.TakipEden ?? "").ToLower() == selectedKisi);
             }
 
             var yorumRows = yorumQuery
