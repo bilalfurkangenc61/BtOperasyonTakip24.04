@@ -1,14 +1,38 @@
 @model BtOperasyonTakip.Models.JiraTask
 @{
     var kullaniciList = ViewBag.KullaniciSecenekleri as List<string> ?? new List<string>();
-    var durumClass = (Model.Durum ?? string.Empty).Trim() switch
+
+    static (string Background, string Border, string Text) GetStatusPalette(string durum)
     {
-        "Beklemede" => "jira-status jira-status-waiting",
-        "Aktif" => "jira-status jira-status-active",
-        "Döküman İletildi" => "jira-status jira-status-document",
-        "Tamamlandı" => "jira-status jira-status-done",
-        _ => "jira-status jira-status-default"
+        return durum switch
+        {
+            "Beklemede" => ("#fff7d6", "#ffe28a", "#8f5b00"),
+            "Aktif" => ("#dbeafe", "#bfdbfe", "#1d4ed8"),
+            "Döküman İletildi" => ("#f3e8ff", "#d8b4fe", "#7c3aed"),
+            "Tamamlandı" => ("#e3fcef", "#abf5d1", "#006644"),
+            _ => GetDynamicStatusPalette(durum)
+        };
     };
+
+    static (string Background, string Border, string Text) GetDynamicStatusPalette(string durum)
+    {
+        unchecked
+        {
+            var hash = 17;
+            foreach (var ch in durum ?? string.Empty)
+            {
+                hash = (hash * 31) + ch;
+            }
+
+            var hue = Math.Abs(hash % 360);
+            return (
+                $"hsl({hue} 85% 96%)",
+                $"hsl({hue} 70% 84%)",
+                $"hsl({hue} 68% 34%)");
+        }
+    }
+
+    var durumPalette = GetStatusPalette((Model.Durum ?? string.Empty).Trim());
 }
 
 <style>
@@ -83,36 +107,6 @@
         font-weight: 700;
         border: 1px solid transparent;
         white-space: nowrap;
-    }
-
-    .jira-status-waiting {
-        background: #fff7d6;
-        color: #8f5b00;
-        border-color: #ffe28a;
-    }
-
-    .jira-status-active {
-        background: #dbeafe;
-        color: #1d4ed8;
-        border-color: #bfdbfe;
-    }
-
-    .jira-status-done {
-        background: #e3fcef;
-        color: #006644;
-        border-color: #abf5d1;
-    }
-
-    .jira-status-document {
-        background: #f3e8ff;
-        color: #7c3aed;
-        border-color: #d8b4fe;
-    }
-
-    .jira-status-default {
-        background: #f4f5f7;
-        color: #42526e;
-        border-color: #dfe1e6;
     }
 
     .jira-detail-body {
@@ -465,7 +459,7 @@
             </div>
         </div>
 
-        <span class="@durumClass">@Model.Durum</span>
+        <span class="jira-status" style="background:@durumPalette.Background; border-color:@durumPalette.Border; color:@durumPalette.Text;">@Model.Durum</span>
     </div>
 
     <div class="jira-detail-body">

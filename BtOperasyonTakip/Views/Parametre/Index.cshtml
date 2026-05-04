@@ -2,14 +2,26 @@
 @{
     ViewData["Title"] = "Parametreler";
     var turler = (IEnumerable<string>)(ViewBag.Turler ?? new List<string>());
+    var durumParametreleri = (IEnumerable<BtOperasyonTakip.Models.Parametre>)(ViewBag.DurumParametreleri ?? new List<BtOperasyonTakip.Models.Parametre>());
+    var durumListesi = durumParametreleri.ToList();
     var isAdmin = User.IsInRole("Admin");
     var toplamParametre = Model?.Count() ?? 0;
     var toplamTur = turler.Count();
+
+    static string GetDurumIcon(string? durum) => (durum ?? string.Empty).Trim() switch
+    {
+        "Beklemede" => "⏳",
+        "Aktif" => "🚀",
+        "Döküman İletildi" => "📄",
+        "Tamamlandı" => "✅",
+        _ => "•"
+    };
 }
 
 <style>
     .parametre-shell {
-        max-width: 1450px;
+        max-width: 1180px;
+        overflow-x: hidden;
     }
 
     .parametre-hero {
@@ -70,6 +82,92 @@
     .parametre-table thead th {
         white-space: nowrap;
         background: #f8fafc;
+    }
+
+    .durum-card {
+        border: 1px solid #dbe7fb;
+        border-radius: 1rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.06);
+    }
+
+    .durum-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .durum-order-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.28rem 0.6rem;
+        border-radius: 999px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+        font-size: 0.74rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .durum-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.85rem;
+        align-items: center;
+        border: 1px solid #e6edf7;
+        border-radius: 0.8rem;
+        background: rgba(255, 255, 255, 0.9);
+        min-width: 0;
+        padding: 0.75rem 0.85rem;
+    }
+
+    .durum-item-main {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .durum-icon {
+        width: 2rem;
+        height: 2rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        font-size: 1rem;
+    }
+
+    .durum-name {
+        font-weight: 700;
+        color: #0f172a;
+        word-break: break-word;
+        font-size: 0.95rem;
+    }
+
+    .durum-meta {
+        color: #64748b;
+        font-size: 0.76rem;
+    }
+
+    .durum-actions {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+
+    .durum-actions form {
+        margin: 0;
+    }
+
+    .durum-helper {
+        color: #64748b;
+        font-size: 0.84rem;
     }
 </style>
 
@@ -138,6 +236,64 @@
                         </form>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="card durum-card mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <div class="fw-semibold text-primary">Durum Yönetimi</div>
+                    <div class="small text-muted">İş Takip ekranındaki kolon sırasını ve durum görünümünü buradan yönetin.</div>
+                </div>
+                <div class="durum-helper">Yukarı / aşağı butonları kolon sırasını belirler.</div>
+            </div>
+            <div class="card-body">
+                @if (durumListesi.Any())
+                {
+                    <div class="durum-list">
+                        @for (var i = 0; i < durumListesi.Count; i++)
+                        {
+                            var durum = durumListesi[i];
+                            var isFirst = i == 0;
+                            var isLast = i == durumListesi.Count - 1;
+
+                            <div class="durum-item">
+                                <div class="durum-item-main">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="durum-icon">@GetDurumIcon(durum.ParAdi)</span>
+                                        <div>
+                                            <div class="durum-name">@durum.ParAdi</div>
+                                            <div class="durum-meta">İş Takip kolonu olarak görünür</div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                                        <span class="durum-order-badge">Sıra @(i + 1)</span>
+                                        <span class="durum-meta">Kayıt No: #@durum.Id</span>
+                                    </div>
+                                </div>
+
+                                <div class="durum-actions">
+                                    <form asp-action="MoveDurum" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@durum.Id" />
+                                        <input type="hidden" name="direction" value="up" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary" title="Yukarı taşı" @(isFirst ? "disabled" : null)>↑ Yukarı</button>
+                                    </form>
+                                    <form asp-action="MoveDurum" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@durum.Id" />
+                                        <input type="hidden" name="direction" value="down" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary" title="Aşağı taşı" @(isLast ? "disabled" : null)>↓ Aşağı</button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info mb-0">Henüz <strong>Durum</strong> türünde parametre tanımlı değil.</div>
+                }
             </div>
         </div>
     }

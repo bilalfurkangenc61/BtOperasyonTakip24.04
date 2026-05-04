@@ -35,7 +35,14 @@ namespace BtOperasyonTakip.Controllers
                 .OrderBy(x => x)
                 .ToListAsync();
 
+            var durumParametreleri = await _context.Parametreler
+                .AsNoTracking()
+                .Where(p => p.Tur == "Durum" && p.ParAdi != null && p.ParAdi != "")
+                .OrderBy(p => p.Id)
+                .ToListAsync();
+
             ViewBag.Turler = turler;
+            ViewBag.DurumParametreleri = durumParametreleri;
 
             return View(parametreler);
         }
@@ -76,6 +83,37 @@ namespace BtOperasyonTakip.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = AppRoles.Admin)]
+        public IActionResult MoveDurum(int id, string direction)
+        {
+            direction = (direction ?? string.Empty).Trim().ToLowerInvariant();
+            if (id <= 0 || (direction != "up" && direction != "down"))
+                return RedirectToAction(nameof(Index));
+
+            var durumlar = _context.Parametreler
+                .Where(p => p.Tur == "Durum" && p.ParAdi != null && p.ParAdi != "")
+                .OrderBy(p => p.Id)
+                .ToList();
+
+            var currentIndex = durumlar.FindIndex(x => x.Id == id);
+            if (currentIndex < 0)
+                return RedirectToAction(nameof(Index));
+
+            var targetIndex = direction == "up" ? currentIndex - 1 : currentIndex + 1;
+            if (targetIndex < 0 || targetIndex >= durumlar.Count)
+                return RedirectToAction(nameof(Index));
+
+            var current = durumlar[currentIndex];
+            var target = durumlar[targetIndex];
+
+            (current.ParAdi, target.ParAdi) = (target.ParAdi, current.ParAdi);
+            _context.SaveChanges();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = AppRoles.Admin)]
         public async Task<IActionResult> TurEkle(string tur)
         {
             tur = (tur ?? "").Trim();
@@ -98,7 +136,7 @@ namespace BtOperasyonTakip.Controllers
             var durumlar = await _context.Parametreler
                 .AsNoTracking()
                 .Where(p => p.Tur == "Durum" && p.ParAdi != null && p.ParAdi != "")
-                .OrderBy(p => p.ParAdi)
+                .OrderBy(p => p.Id)
                 .Select(p => p.ParAdi!)
                 .ToListAsync();
 

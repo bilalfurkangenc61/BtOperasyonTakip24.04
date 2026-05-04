@@ -181,9 +181,24 @@ namespace BtOperasyonTakip.Controllers
                 .Take(pageSize)
                 .ToList();
 
-            var dokumanIletildiTasks = paged
-                .Where(t => (t.Durum ?? "").Trim().Equals("Döküman İletildi", StringComparison.OrdinalIgnoreCase))
+            var durumListesi = _context.Parametreler
+                .AsNoTracking()
+                .Where(x => x.Tur == "Durum" && x.ParAdi != null && x.ParAdi != "")
+                .OrderBy(x => x.Id)
+                .Select(x => x.ParAdi!.Trim())
+                .Where(x => x != "")
+                .ToList()
+                .Concat(
+                    paged
+                        .Select(x => (x.Durum ?? string.Empty).Trim())
+                        .Where(x => x != ""))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+
+            if (durumListesi.Count == 0)
+            {
+                durumListesi = ["Beklemede", "Aktif", "Tamamlandı"];
+            }
 
            
             var model = new JiraBoardViewModel
@@ -212,7 +227,8 @@ namespace BtOperasyonTakip.Controllers
             ViewBag.KullaniciSecenekleri = operasyonKullaniciList;
             ViewBag.KisiSecenekleri = operasyonKullaniciList;
             ViewBag.SelectedKisi = kisi;
-            ViewBag.DokumanIletildiTasks = dokumanIletildiTasks;
+            ViewBag.DurumListesi = durumListesi;
+            ViewBag.PagedTasks = paged;
             return View(model);
         }
 
@@ -509,31 +525,30 @@ namespace BtOperasyonTakip.Controllers
         }
 
         [HttpGet]
-        public IActionResult ExportExcelGrouped(string? q, string? kisi = null)
+        public IActionResult ExportExcelGrouped()
         {
             var query = _context.JiraTasks
                 .AsNoTracking()
                 .AsQueryable();
 
-            q = (q ?? "").Trim();
-            kisi = (kisi ?? string.Empty).Trim();
-            if (!string.IsNullOrWhiteSpace(q))
-            {
-                var qq = q.ToLowerInvariant();
-                query = query.Where(t =>
-                    (t.MusteriAdi ?? "").ToLower().Contains(qq) ||
-                    (t.TalepKonusu ?? "").ToLower().Contains(qq) ||
-                    (t.TalepTuru ?? "").ToLower().Contains(qq) ||
-                    (t.TalepAcan ?? "").ToLower().Contains(qq) ||
-                    (t.TakipEden ?? "").ToLower().Contains(qq) ||
-                    (t.Durum ?? "").ToLower().Contains(qq));
-            }
-
-            if (!string.IsNullOrWhiteSpace(kisi))
-            {
-                var selectedKisi = kisi.ToLowerInvariant();
-                query = query.Where(t => (t.TakipEden ?? "").ToLower() == selectedKisi);
-            }
+            var yorumLookup = _context.JiraYorumlar
+                .AsNoTracking()
+                .OrderBy(y => y.Tarih)
+                .Select(y => new
+                {
+                    y.JiraTaskId,
+                    y.Ekleyen,
+                    y.YorumMetni,
+                    y.Tarih
+                })
+                .ToList()
+                .GroupBy(y => y.JiraTaskId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => string.Join(Environment.NewLine + Environment.NewLine,
+                        g.Select(y =>
+                            $"{y.Tarih:dd.MM.yyyy HH:mm} - {(y.Ekleyen ?? "").Trim()}" +
+                            (string.IsNullOrWhiteSpace(y.YorumMetni) ? string.Empty : Environment.NewLine + y.YorumMetni.Trim()))));
 
             var rows = query
                 .Select(x => new ExportTaskRow
@@ -551,54 +566,11 @@ namespace BtOperasyonTakip.Controllers
                 .ToList()
                 .OrderBy(x => x.JiraId ?? "", new JiraIdNaturalComparer())
                 .ThenByDescending(x => x.OlusturmaTarihi)
-                .ThenBy(x => x.Id)
-                .ToList();
-
-            var yorumQuery = _context.JiraYorumlar
-                .AsNoTracking()
-                .Include(y => y.JiraTask)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(q))
-            {
-                var qq = q.ToLowerInvariant();
-                yorumQuery = yorumQuery.Where(y =>
-                    (y.JiraTask.MusteriAdi ?? "").ToLower().Contains(qq) ||
-                    (y.JiraTask.JiraId ?? "").ToLower().Contains(qq) ||
-                    (y.JiraTask.TalepKonusu ?? "").ToLower().Contains(qq) ||
-                    (y.JiraTask.TalepTuru ?? "").ToLower().Contains(qq) ||
-                    (y.JiraTask.TalepAcan ?? "").ToLower().Contains(qq) ||
-                    (y.JiraTask.TakipEden ?? "").ToLower().Contains(qq) ||
-                    (y.JiraTask.Durum ?? "").ToLower().Contains(qq) ||
-                    (y.YorumMetni ?? "").ToLower().Contains(qq) ||
-                    (y.Ekleyen ?? "").ToLower().Contains(qq));
-            }
-
-            if (!string.IsNullOrWhiteSpace(kisi))
-            {
-                var selectedKisi = kisi.ToLowerInvariant();
-                yorumQuery = yorumQuery.Where(y => (y.JiraTask.TakipEden ?? "").ToLower() == selectedKisi);
-            }
-
-            var yorumRows = yorumQuery
-                .Select(y => new ExportCommentRow
+                .Select(x =>
                 {
-                    Id = y.Id,
-                    JiraTaskId = y.JiraTaskId,
-                    MusteriAdi = y.JiraTask.MusteriAdi,
-                    JiraId = y.JiraTask.JiraId,
-                    TalepKonusu = y.JiraTask.TalepKonusu,
-                    TalepTuru = y.JiraTask.TalepTuru,
-                    TalepAcan = y.JiraTask.TalepAcan,
-                    TakipEden = y.JiraTask.TakipEden,
-                    Ekleyen = y.Ekleyen,
-                    YorumMetni = y.YorumMetni,
-                    Tarih = y.Tarih
+                    x.Yorumlar = yorumLookup.TryGetValue(x.Id, out var yorumlar) ? yorumlar : string.Empty;
+                    return x;
                 })
-                .ToList()
-                .OrderBy(x => x.JiraId ?? "", new JiraIdNaturalComparer())
-                .ThenByDescending(x => x.Tarih)
-                .ThenBy(x => x.Id)
                 .ToList();
 
             using var ms = new MemoryStream();
@@ -621,16 +593,14 @@ namespace BtOperasyonTakip.Controllers
                 var isTakipWorksheet = new Worksheet();
 
                 var isTakipColumns = new Columns(
-                    CreateColumn(1, 1, 12),  // Jira Grup
-                    CreateColumn(2, 2, 10),  // Id
-                    CreateColumn(3, 3, 24),  // Müşteri
-                    CreateColumn(4, 4, 16),  // JiraId
-                    CreateColumn(5, 5, 48),  // Talep Konusu
-                    CreateColumn(6, 6, 16),  // Talep Türü
-                    CreateColumn(7, 7, 20),  // Talep Açan
-                    CreateColumn(8, 8, 20),  // Takip Eden
-                    CreateColumn(9, 9, 16),  // Durum
-                    CreateColumn(10, 10, 20) // Oluşturma Tarihi
+                    CreateColumn(1, 1, 24),  // Müşteri
+                    CreateColumn(2, 2, 48),  // Talep Konusu
+                    CreateColumn(3, 3, 16),  // Talep Türü
+                    CreateColumn(4, 4, 20),  // Talep Açan
+                    CreateColumn(5, 5, 20),  // Takip Eden
+                    CreateColumn(6, 6, 16),  // Durum
+                    CreateColumn(7, 7, 20),  // Oluşturma Tarihi
+                    CreateColumn(8, 8, 60)   // Yorumlar
                 );
 
                 isTakipWorksheet.Append(isTakipColumns);
@@ -648,46 +618,12 @@ namespace BtOperasyonTakip.Controllers
                     Name = "IsTakip"
                 });
 
-                var yorumPart = workbookPart.AddNewPart<WorksheetPart>();
-                var yorumSheetData = new SheetData();
-                var yorumWorksheet = new Worksheet();
-
-                var yorumColumns = new Columns(
-                    CreateColumn(1, 1, 12),   // Jira Grup
-                    CreateColumn(2, 2, 10),   // Yorum Id
-                    CreateColumn(3, 3, 12),   // JiraTaskId
-                    CreateColumn(4, 4, 24),   // Müşteri
-                    CreateColumn(5, 5, 16),   // JiraId
-                    CreateColumn(6, 6, 40),   // Talep Konusu
-                    CreateColumn(7, 7, 16),   // Talep Türü
-                    CreateColumn(8, 8, 20),   // Talep Açan
-                    CreateColumn(9, 9, 20),   // Takip Eden
-                    CreateColumn(10, 10, 18), // Ekleyen
-                    CreateColumn(11, 11, 55), // Yorum
-                    CreateColumn(12, 12, 20)  // Yorum Tarihi
-                );
-
-                yorumWorksheet.Append(yorumColumns);
-                yorumWorksheet.Append(yorumSheetData);
-
-                BuildCommentSheet(yorumSheetData, yorumWorksheet, yorumRows);
-
-                yorumPart.Worksheet = yorumWorksheet;
-                yorumPart.Worksheet.Save();
-
-                sheets.Append(new Sheet
-                {
-                    Id = workbookPart.GetIdOfPart(yorumPart),
-                    SheetId = sheetId++,
-                    Name = "Yorumlar"
-                });
-
                 workbookPart.Workbook.Save();
             }
 
             ms.Position = 0;
 
-            var fileName = $"IsTakip_JiraId_Grup_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+                var fileName = $"IsTakip_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
             return File(
                 ms.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -701,176 +637,43 @@ namespace BtOperasyonTakip.Controllers
 
             var header = new Row { RowIndex = currentRow };
             header.Append(
-                CreateTextCell("A", currentRow, "Jira Grup", 1),
-                CreateTextCell("B", currentRow, "Id", 1),
-                CreateTextCell("C", currentRow, "Müşteri", 1),
-                CreateTextCell("D", currentRow, "JiraId", 1),
-                CreateTextCell("E", currentRow, "Talep Konusu", 1),
-                CreateTextCell("F", currentRow, "Talep Türü", 1),
-                CreateTextCell("G", currentRow, "Talep Açan", 1),
-                CreateTextCell("H", currentRow, "Takip Eden", 1),
-                CreateTextCell("I", currentRow, "Durum", 1),
-                CreateTextCell("J", currentRow, "Oluşturma Tarihi", 1)
+                CreateTextCell("A", currentRow, "Müşteri", 1),
+                CreateTextCell("B", currentRow, "Talep Konusu", 1),
+                CreateTextCell("C", currentRow, "Talep Türü", 1),
+                CreateTextCell("D", currentRow, "Talep Açan", 1),
+                CreateTextCell("E", currentRow, "Takip Eden", 1),
+                CreateTextCell("F", currentRow, "Durum", 1),
+                CreateTextCell("G", currentRow, "Oluşturma Tarihi", 1),
+                CreateTextCell("H", currentRow, "Yorumlar", 1)
             );
             sheetData.Append(header);
 
-            int groupNo = 0;
-            string lastJiraId = "";
             bool alternate = false;
 
             foreach (var item in rows)
             {
-                var jira = (item.JiraId ?? "").Trim();
-
-                if (!string.Equals(lastJiraId, jira, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!string.IsNullOrWhiteSpace(lastJiraId))
-                    {
-                        currentRow++;
-                        var spacer = new Row { RowIndex = currentRow };
-                        spacer.Append(
-                            CreateTextCell("A", currentRow, "", 0),
-                            CreateTextCell("B", currentRow, "", 0),
-                            CreateTextCell("C", currentRow, "", 0),
-                            CreateTextCell("D", currentRow, "", 0),
-                            CreateTextCell("E", currentRow, "", 0),
-                            CreateTextCell("F", currentRow, "", 0),
-                            CreateTextCell("G", currentRow, "", 0),
-                            CreateTextCell("H", currentRow, "", 0),
-                            CreateTextCell("I", currentRow, "", 0),
-                            CreateTextCell("J", currentRow, "", 0)
-                        );
-                        sheetData.Append(spacer);
-                    }
-
-                    groupNo++;
-                    alternate = !alternate;
-                    lastJiraId = jira;
-                }
-
                 currentRow++;
+                alternate = !alternate;
 
                 uint style = alternate ? 2u : 3u;
 
                 var row = new Row { RowIndex = currentRow };
                 row.Append(
-                    CreateTextCell("A", currentRow, string.IsNullOrWhiteSpace(jira) ? "" : groupNo.ToString(), style),
-                    CreateNumberCell("B", currentRow, item.Id.ToString(CultureInfo.InvariantCulture), style),
-                    CreateTextCell("C", currentRow, item.MusteriAdi ?? "", style),
-                    CreateTextCell("D", currentRow, item.JiraId ?? "", style),
-                    CreateTextCell("E", currentRow, item.TalepKonusu ?? "", style),
-                    CreateTextCell("F", currentRow, item.TalepTuru ?? "", style),
-                    CreateTextCell("G", currentRow, item.TalepAcan ?? "", style),
-                    CreateTextCell("H", currentRow, item.TakipEden ?? "", style),
-                    CreateTextCell("I", currentRow, item.Durum ?? "", style),
-                    CreateDateCell("J", currentRow, item.OlusturmaTarihi, alternate ? 4u : 5u)
+                    CreateTextCell("A", currentRow, item.MusteriAdi ?? "", style),
+                    CreateTextCell("B", currentRow, item.TalepKonusu ?? "", style),
+                    CreateTextCell("C", currentRow, item.TalepTuru ?? "", style),
+                    CreateTextCell("D", currentRow, item.TalepAcan ?? "", style),
+                    CreateTextCell("E", currentRow, item.TakipEden ?? "", style),
+                    CreateTextCell("F", currentRow, item.Durum ?? "", style),
+                    CreateDateCell("G", currentRow, item.OlusturmaTarihi, alternate ? 4u : 5u),
+                    CreateTextCell("H", currentRow, item.Yorumlar ?? "", style)
                 );
                 sheetData.Append(row);
             }
 
             if (currentRow >= 1)
             {
-                var autoFilter = new AutoFilter { Reference = $"A1:J{Math.Max(currentRow, 1)}" };
-                var sheetViews = new SheetViews(
-                    new SheetView
-                    {
-                        WorkbookViewId = 0U,
-                        Pane = new Pane
-                        {
-                            VerticalSplit = 1D,
-                            TopLeftCell = "A2",
-                            ActivePane = PaneValues.BottomLeft,
-                            State = PaneStateValues.Frozen
-                        }
-                    });
-
-                worksheet.InsertAt(sheetViews, 0);
-                worksheet.Append(autoFilter);
-            }
-        }
-
-        private static void BuildCommentSheet(SheetData sheetData, Worksheet worksheet, List<ExportCommentRow> rows)
-        {
-            uint currentRow = 1;
-
-            var header = new Row { RowIndex = currentRow };
-            header.Append(
-                CreateTextCell("A", currentRow, "Jira Grup", 1),
-                CreateTextCell("B", currentRow, "Yorum Id", 1),
-                CreateTextCell("C", currentRow, "JiraTaskId", 1),
-                CreateTextCell("D", currentRow, "Müşteri", 1),
-                CreateTextCell("E", currentRow, "JiraId", 1),
-                CreateTextCell("F", currentRow, "Talep Konusu", 1),
-                CreateTextCell("G", currentRow, "Talep Türü", 1),
-                CreateTextCell("H", currentRow, "Talep Açan", 1),
-                CreateTextCell("I", currentRow, "Takip Eden", 1),
-                CreateTextCell("J", currentRow, "Ekleyen", 1),
-                CreateTextCell("K", currentRow, "Yorum", 1),
-                CreateTextCell("L", currentRow, "Yorum Tarihi", 1)
-            );
-            sheetData.Append(header);
-
-            int groupNo = 0;
-            string lastJiraId = "";
-            bool alternate = false;
-
-            foreach (var item in rows)
-            {
-                var jira = (item.JiraId ?? "").Trim();
-
-                if (!string.Equals(lastJiraId, jira, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!string.IsNullOrWhiteSpace(lastJiraId))
-                    {
-                        currentRow++;
-                        var spacer = new Row { RowIndex = currentRow };
-                        spacer.Append(
-                            CreateTextCell("A", currentRow, "", 0),
-                            CreateTextCell("B", currentRow, "", 0),
-                            CreateTextCell("C", currentRow, "", 0),
-                            CreateTextCell("D", currentRow, "", 0),
-                            CreateTextCell("E", currentRow, "", 0),
-                            CreateTextCell("F", currentRow, "", 0),
-                            CreateTextCell("G", currentRow, "", 0),
-                            CreateTextCell("H", currentRow, "", 0),
-                            CreateTextCell("I", currentRow, "", 0),
-                            CreateTextCell("J", currentRow, "", 0),
-                            CreateTextCell("K", currentRow, "", 0),
-                            CreateTextCell("L", currentRow, "", 0)
-                        );
-                        sheetData.Append(spacer);
-                    }
-
-                    groupNo++;
-                    alternate = !alternate;
-                    lastJiraId = jira;
-                }
-
-                currentRow++;
-
-                uint style = alternate ? 2u : 3u;
-
-                var row = new Row { RowIndex = currentRow };
-                row.Append(
-                    CreateTextCell("A", currentRow, string.IsNullOrWhiteSpace(jira) ? "" : groupNo.ToString(), style),
-                    CreateNumberCell("B", currentRow, item.Id.ToString(CultureInfo.InvariantCulture), style),
-                    CreateNumberCell("C", currentRow, item.JiraTaskId.ToString(CultureInfo.InvariantCulture), style),
-                    CreateTextCell("D", currentRow, item.MusteriAdi ?? "", style),
-                    CreateTextCell("E", currentRow, item.JiraId ?? "", style),
-                    CreateTextCell("F", currentRow, item.TalepKonusu ?? "", style),
-                    CreateTextCell("G", currentRow, item.TalepTuru ?? "", style),
-                    CreateTextCell("H", currentRow, item.TalepAcan ?? "", style),
-                    CreateTextCell("I", currentRow, item.TakipEden ?? "", style),
-                    CreateTextCell("J", currentRow, item.Ekleyen ?? "", style),
-                    CreateTextCell("K", currentRow, item.YorumMetni ?? "", style),
-                    CreateDateCell("L", currentRow, item.Tarih, alternate ? 4u : 5u)
-                );
-                sheetData.Append(row);
-            }
-
-            if (currentRow >= 1)
-            {
-                var autoFilter = new AutoFilter { Reference = $"A1:L{Math.Max(currentRow, 1)}" };
+                var autoFilter = new AutoFilter { Reference = $"A1:H{Math.Max(currentRow, 1)}" };
                 var sheetViews = new SheetViews(
                     new SheetView
                     {
@@ -1122,6 +925,7 @@ namespace BtOperasyonTakip.Controllers
             public string? TakipEden { get; set; }
             public string? Durum { get; set; }
             public DateTime OlusturmaTarihi { get; set; }
+            public string? Yorumlar { get; set; }
         }
 
         private sealed class ExportCommentRow
@@ -1134,9 +938,16 @@ namespace BtOperasyonTakip.Controllers
             public string? TalepTuru { get; set; }
             public string? TalepAcan { get; set; }
             public string? TakipEden { get; set; }
+            public string? Durum { get; set; }
             public string? Ekleyen { get; set; }
             public string? YorumMetni { get; set; }
             public DateTime Tarih { get; set; }
+        }
+
+        private sealed class ExportStatusRow
+        {
+            public string? Durum { get; set; }
+            public int KayitSayisi { get; set; }
         }
     }
 }
