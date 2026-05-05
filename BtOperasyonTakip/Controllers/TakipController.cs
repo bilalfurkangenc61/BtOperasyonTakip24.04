@@ -19,6 +19,7 @@ namespace BtOperasyonTakip.Controllers
         private readonly AppDbContext _context;
 
         private static readonly string[] AllowedTalepTurleri = ["Geliştirme", "Eğitim", "Entegrasyon", "Hata Çözüm"];
+        private static readonly string[] ExcelDisiTalepTurleri = ["Geliştirme", "Eğitim"];
         private const int DefaultPageSize = 10;
         private const int MaxPageSize = 100;
 
@@ -529,6 +530,7 @@ namespace BtOperasyonTakip.Controllers
         {
             var query = _context.JiraTasks
                 .AsNoTracking()
+                .Where(x => !ExcelDisiTalepTurleri.Contains((x.TalepTuru ?? string.Empty).Trim()))
                 .AsQueryable();
 
             var yorumLookup = _context.JiraYorumlar
@@ -629,6 +631,161 @@ namespace BtOperasyonTakip.Controllers
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 fileName
             );
+        }
+
+        [HttpGet]
+        public IActionResult ExportExcelDisiIsler(string? q)
+        {
+            q = (q ?? string.Empty).Trim();
+
+            var query = _context.JiraTasks
+                .AsNoTracking()
+                .Where(x => ExcelDisiTalepTurleri.Contains((x.TalepTuru ?? string.Empty).Trim()))
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var qq = q.ToLowerInvariant();
+                query = query.Where(t =>
+                    (t.MusteriAdi ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.JiraId ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.TalepKonusu ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.TalepTuru ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.TalepAcan ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.TakipEden ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.Durum ?? string.Empty).ToLower().Contains(qq));
+            }
+
+            var yorumLookup = _context.JiraYorumlar
+                .AsNoTracking()
+                .OrderBy(y => y.Tarih)
+                .Select(y => new
+                {
+                    y.JiraTaskId,
+                    y.Ekleyen,
+                    y.YorumMetni,
+                    y.Tarih
+                })
+                .ToList()
+                .GroupBy(y => y.JiraTaskId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => string.Join(Environment.NewLine + Environment.NewLine,
+                        g.Select(y =>
+                            $"{y.Tarih:dd.MM.yyyy HH:mm} - {(y.Ekleyen ?? string.Empty).Trim()}" +
+                            (string.IsNullOrWhiteSpace(y.YorumMetni) ? string.Empty : Environment.NewLine + y.YorumMetni.Trim()))));
+
+            var rows = query
+                .Select(x => new ExportTaskRow
+                {
+                    Id = x.Id,
+                    MusteriAdi = x.MusteriAdi,
+                    JiraId = x.JiraId,
+                    TalepKonusu = x.TalepKonusu,
+                    TalepTuru = x.TalepTuru,
+                    TalepAcan = x.TalepAcan,
+                    TakipEden = x.TakipEden,
+                    Durum = x.Durum,
+                    OlusturmaTarihi = x.OlusturmaTarihi
+                })
+                .ToList()
+                .OrderBy(x => x.JiraId ?? string.Empty, new JiraIdNaturalComparer())
+                .ThenByDescending(x => x.OlusturmaTarihi)
+                .Select(x =>
+                {
+                    x.Yorumlar = yorumLookup.TryGetValue(x.Id, out var yorumlar) ? yorumlar : string.Empty;
+                    return x;
+                })
+                .ToList();
+
+            using var ms = new MemoryStream();
+
+            using (var document = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook, true))
+            {
+                var workbookPart = document.AddWorkbookPart();
+                workbookPart.Workbook = new Workbook();
+
+                var stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+                stylesPart.Stylesheet = CreateStylesheet();
+                stylesPart.Stylesheet.Save();
+
+                var sheets = workbookPart.Workbook.AppendChild(new Sheets());
+
+                uint sheetId = 1;
+
+                var isTakipPart = workbookPart.AddNewPart<WorksheetPart>();
+                var isTakipSheetData = new SheetData();
+                var isTakipWorksheet = new Worksheet();
+
+                var isTakipColumns = new Columns(
+                    CreateColumn(1, 1, 24),
+                    CreateColumn(2, 2, 48),
+                    CreateColumn(3, 3, 16),
+                    CreateColumn(4, 4, 20),
+                    CreateColumn(5, 5, 20),
+                    CreateColumn(6, 6, 16),
+                    CreateColumn(7, 7, 20),
+                    CreateColumn(8, 8, 60)
+                );
+
+                isTakipWorksheet.Append(isTakipColumns);
+                isTakipWorksheet.Append(isTakipSheetData);
+
+                BuildTaskSheet(isTakipSheetData, isTakipWorksheet, rows);
+
+                isTakipPart.Worksheet = isTakipWorksheet;
+                isTakipPart.Worksheet.Save();
+
+                sheets.Append(new Sheet
+                {
+                    Id = workbookPart.GetIdOfPart(isTakipPart),
+                    SheetId = sheetId++,
+                    Name = "ExcelDisiIsler"
+                });
+
+                workbookPart.Workbook.Save();
+            }
+
+            ms.Position = 0;
+
+            var fileName = $"ExcelDisiIsler_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            return File(
+                ms.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                fileName
+            );
+        }
+
+        [HttpGet]
+        public IActionResult ExcelDisiIsler(string? q)
+        {
+            q = (q ?? string.Empty).Trim();
+
+            var query = _context.JiraTasks
+                .AsNoTracking()
+                .Where(x => ExcelDisiTalepTurleri.Contains((x.TalepTuru ?? string.Empty).Trim()))
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var qq = q.ToLowerInvariant();
+                query = query.Where(t =>
+                    (t.MusteriAdi ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.JiraId ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.TalepKonusu ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.TalepTuru ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.TalepAcan ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.TakipEden ?? string.Empty).ToLower().Contains(qq) ||
+                    (t.Durum ?? string.Empty).ToLower().Contains(qq));
+            }
+
+            var tasks = query
+                .OrderByDescending(x => x.OlusturmaTarihi)
+                .ToList();
+
+            ViewBag.Title = "Geliştirme ve Eğitim İşleri";
+            ViewBag.Q = q;
+            return View(tasks);
         }
 
         private static void BuildTaskSheet(SheetData sheetData, Worksheet worksheet, List<ExportTaskRow> rows)

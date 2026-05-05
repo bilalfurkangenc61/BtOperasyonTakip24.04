@@ -1,0 +1,79 @@
+@model List<BtOperasyonTakip.Models.JiraTask>
+@{
+    var pageTitle = (ViewBag.Title as string) ?? "Geliştirme ve Eğitim İşleri";
+    ViewData["Title"] = pageTitle;
+    var q = (ViewBag.Q as string) ?? string.Empty;
+}
+
+<div class="container py-3">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">@pageTitle</h2>
+            <div class="text-muted">Excel'e dahil edilmeyen geliştirme ve eğitim işleri burada listelenir.</div>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-success" href="@Url.Action("ExportExcelDisiIsler", "Takip", new { q })">Excel İndir</a>
+            <a class="btn btn-outline-secondary" href="@Url.Action("Index", "Takip")">İş Takip'e Dön</a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Ara</label>
+                    <input type="text" name="q" value="@q" class="form-control" placeholder="Müşteri, Jira No, konu, durum..." />
+                </div>
+                <div class="col-md-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Filtrele</button>
+                    <a class="btn btn-outline-secondary" href="@Url.Action("ExcelDisiIsler", "Takip")">Temizle</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Müşteri</th>
+                            <th>Jira No</th>
+                            <th>Talep Konusu</th>
+                            <th>Talep Türü</th>
+                            <th>Talep Açan</th>
+                            <th>Takip Eden</th>
+                            <th>Durum</th>
+                            <th>Oluşturma Tarihi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">Kayıt bulunamadı.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@item.MusteriAdi</td>
+                                    <td>@item.JiraId</td>
+                                    <td>@item.TalepKonusu</td>
+                                    <td>@item.TalepTuru</td>
+                                    <td>@item.TalepAcan</td>
+                                    <td>@item.TakipEden</td>
+                                    <td>@item.Durum</td>
+                                    <td>@item.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
