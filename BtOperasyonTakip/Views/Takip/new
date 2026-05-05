@@ -1,0 +1,519 @@
+@model BtOperasyonTakip.Models.JiraBoardViewModel
+
+@{
+    ViewData["Title"] = "İş Takip";
+
+    var durumListesi = (IEnumerable<string>)(ViewBag.DurumListesi ?? new List<string>());
+    var pagedTasks = (IEnumerable<BtOperasyonTakip.Models.JiraTask>)(ViewBag.PagedTasks ?? new List<BtOperasyonTakip.Models.JiraTask>());
+
+    var selectedDurum = (string)(ViewBag.SelectedDurum ?? "Tümü");
+    var durumFiltreleri = (IEnumerable<string>)(ViewBag.DurumFiltreleri ?? new List<string>());
+
+    var selectedKisi = (string)(ViewBag.SelectedKisi ?? "");
+    var kisiSecenekleri = (IEnumerable<string>)(ViewBag.KisiSecenekleri ?? new List<string>());
+
+    var totalPages = Model.PageSize > 0
+        ? (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize)
+        : 1;
+
+    totalPages = totalPages < 1 ? 1 : totalPages;
+}
+
+<style>
+    .takip-shell {
+        max-width: 1440px;
+    }
+
+    .takip-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+        color: #fff;
+        border-radius: 1.1rem;
+        padding: 1.25rem 1.5rem;
+        box-shadow: 0 1rem 2rem rgba(37, 99, 235, 0.16);
+    }
+
+    .takip-hero .sub {
+        color: rgba(255,255,255,.82);
+        font-size: .92rem;
+    }
+
+    .filter-card {
+        border: 0;
+        border-radius: 1rem;
+        box-shadow: 0 .75rem 1.5rem rgba(15, 23, 42, .08);
+    }
+
+    .status-filter .btn {
+        border-radius: 999px;
+        font-weight: 600;
+    }
+
+    .board-scroll {
+        overflow-x: auto;
+        padding-bottom: .5rem;
+    }
+
+    .board-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        min-width: 100%;
+    }
+
+    .board-column {
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        background: #f8fafc;
+        min-height: 420px;
+        overflow: hidden;
+    }
+
+    .board-column-header {
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        padding: .85rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .board-column-title {
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .task-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: .9rem;
+        padding: .85rem;
+        margin-bottom: .75rem;
+        box-shadow: 0 .45rem 1rem rgba(15, 23, 42, .05);
+    }
+
+    .task-title {
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.25;
+    }
+
+    .task-meta {
+        color: #64748b;
+        font-size: .8rem;
+    }
+
+    .task-label {
+        font-size: .75rem;
+        color: #475569;
+    }
+
+    .task-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+    }
+
+    .empty-column {
+        color: #94a3b8;
+        font-size: .88rem;
+        border: 1px dashed #cbd5e1;
+        border-radius: .8rem;
+        padding: .9rem;
+        text-align: center;
+        background: rgba(255,255,255,.6);
+    }
+</style>
+
+<div class="container-fluid mt-4 takip-shell">
+
+    <div class="takip-hero mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+            <h2 class="mb-1">İş Takip</h2>
+            <div class="sub">Görevleri durum bazlı takip edin, kişi ve durum filtresiyle hızlıca daraltın.</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="badge bg-light text-dark p-2">Toplam: @Model.TotalCount</span>
+            <span class="badge bg-light text-dark p-2">Sayfa: @Model.Page / @totalPages</span>
+        </div>
+    </div>
+
+    @if (TempData["JiraOk"] != null)
+    {
+        <div class="alert alert-success">@TempData["JiraOk"]</div>
+    }
+
+    @if (TempData["JiraError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["JiraError"]</div>
+    }
+
+    <div class="card filter-card mb-4">
+        <div class="card-body">
+
+            <form asp-action="Index" method="get" class="row g-3 align-items-end mb-3">
+                <input type="hidden" name="durum" value="@selectedDurum" />
+
+                <div class="col-lg-5">
+                    <label class="form-label">Arama</label>
+                    <input type="text"
+                           name="q"
+                           value="@Model.Q"
+                           class="form-control"
+                           placeholder="Müşteri, talep konusu, talep açan, takip eden veya durum ara..." />
+                </div>
+
+                <div class="col-lg-3">
+                    <label class="form-label">Takip Eden</label>
+                    <select name="kisi" class="form-select">
+                        <option value="">Tümü</option>
+                        @foreach (var kisi in kisiSecenekleri)
+                        {
+                            <option value="@kisi" selected="@(selectedKisi == kisi ? "selected" : null)">
+                                @kisi
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-lg-2">
+                    <label class="form-label">Sayfa Boyutu</label>
+                    <select name="pageSize" class="form-select">
+                        <option value="10" selected="@(Model.PageSize == 10 ? "selected" : null)">10</option>
+                        <option value="25" selected="@(Model.PageSize == 25 ? "selected" : null)">25</option>
+                        <option value="50" selected="@(Model.PageSize == 50 ? "selected" : null)">50</option>
+                        <option value="100" selected="@(Model.PageSize == 100 ? "selected" : null)">100</option>
+                    </select>
+                </div>
+
+                <div class="col-lg-2 d-grid">
+                    <button type="submit" class="btn btn-primary">Filtrele</button>
+                </div>
+            </form>
+
+            <div class="status-filter d-flex flex-wrap gap-2">
+                <a asp-action="Index"
+                   asp-route-q="@Model.Q"
+                   asp-route-kisi="@selectedKisi"
+                   asp-route-durum="Tümü"
+                   asp-route-pageSize="@Model.PageSize"
+                   class="btn @(selectedDurum.Equals("Tümü", StringComparison.OrdinalIgnoreCase) ? "btn-primary" : "btn-outline-primary")">
+                    Tümü
+                </a>
+
+                @foreach (var d in durumFiltreleri)
+                {
+                    <a asp-action="Index"
+                       asp-route-q="@Model.Q"
+                       asp-route-kisi="@selectedKisi"
+                       asp-route-durum="@d"
+                       asp-route-pageSize="@Model.PageSize"
+                       class="btn @(selectedDurum.Equals(d, StringComparison.OrdinalIgnoreCase) ? "btn-primary" : "btn-outline-primary")">
+                        @d
+                    </a>
+                }
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card filter-card mb-4">
+        <div class="card-header bg-white">
+            <strong>Yeni Görev Ekle</strong>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+
+                <div class="col-lg-3">
+                    <label class="form-label">Müşteri</label>
+                    <select name="MusteriID" class="form-select">
+                        <option value="">Seçiniz</option>
+                        @foreach (var musteri in Model.MusteriSecenekleri)
+                        {
+                            <option value="@musteri.MusteriID">@musteri.Firma</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-lg-3">
+                    <label class="form-label">Talep Konusu</label>
+                    <input name="TalepKonusu" class="form-control" required />
+                </div>
+
+                <div class="col-lg-2">
+                    <label class="form-label">Talep Türü</label>
+                    <select name="TalepTuru" class="form-select">
+                        <option value="">Seçiniz</option>
+                        <option value="Geliştirme">Geliştirme</option>
+                        <option value="Eğitim">Eğitim</option>
+                        <option value="Entegrasyon">Entegrasyon</option>
+                        <option value="Hata Çözüm">Hata Çözüm</option>
+                    </select>
+                </div>
+
+                <div class="col-lg-2">
+                    <label class="form-label">Talep Açan</label>
+                    <select name="TalepAcan" class="form-select">
+                        <option value="">Seçiniz</option>
+                        @foreach (var talepAcan in Model.TalepAcanSecenekleri)
+                        {
+                            <option value="@talepAcan">@talepAcan</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-lg-2">
+                    <label class="form-label">Takip Eden</label>
+                    <select name="TakipEden" class="form-select">
+                        <option value="">Seçiniz</option>
+                        @foreach (var takipEden in Model.TakipEdenSecenekleri)
+                        {
+                            <option value="@takipEden">@takipEden</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-lg-2">
+                    <label class="form-label">Durum</label>
+                    <select name="Durum" class="form-select">
+                        <option value="Beklemede">Beklemede</option>
+                        <option value="Aktif">Aktif</option>
+                        <option value="Döküman İletildi">Döküman İletildi</option>
+                        <option value="Tamamlandı">Tamamlandı</option>
+                    </select>
+                </div>
+
+                <div class="col-lg-2 d-grid align-items-end">
+                    <label class="form-label invisible">Ekle</label>
+                    <button type="submit" class="btn btn-success">Görev Ekle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="board-scroll">
+        <div class="board-grid">
+            @foreach (var kolonDurum in durumListesi)
+            {
+                var kolonTasks = pagedTasks
+                    .Where(x => (x.Durum ?? "").Trim().Equals(kolonDurum, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                <div class="board-column">
+                    <div class="board-column-header">
+                        <div class="board-column-title">@kolonDurum</div>
+                        <span class="badge bg-secondary">@kolonTasks.Count</span>
+                    </div>
+
+                    <div class="p-3">
+                        @if (kolonTasks.Any())
+                        {
+                            foreach (var item in kolonTasks)
+                            {
+                                <div class="task-card">
+                                    <div class="task-title mb-1">
+                                        @item.TalepKonusu
+                                    </div>
+
+                                    <div class="task-meta mb-2">
+                                        @item.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")
+                                    </div>
+
+                                    <div class="task-label">
+                                        <strong>Müşteri:</strong> @(string.IsNullOrWhiteSpace(item.MusteriAdi) ? "-" : item.MusteriAdi)
+                                    </div>
+
+                                    <div class="task-label">
+                                        <strong>Talep Açan:</strong> @(string.IsNullOrWhiteSpace(item.TalepAcan) ? "-" : item.TalepAcan)
+                                    </div>
+
+                                    <div class="task-label">
+                                        <strong>Takip Eden:</strong> @(string.IsNullOrWhiteSpace(item.TakipEden) ? "-" : item.TakipEden)
+                                    </div>
+
+                                    <div class="task-label mb-2">
+                                        <strong>Tür:</strong> @(string.IsNullOrWhiteSpace(item.TalepTuru) ? "-" : item.TalepTuru)
+                                    </div>
+
+                                    <form asp-action="UpdateDurumForm" method="post" class="mb-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+
+                                        <div class="input-group input-group-sm">
+                                            <select name="yeniDurum" class="form-select">
+                                                @foreach (var d in durumFiltreleri)
+                                                {
+                                                    <option value="@d" selected="@(item.Durum == d ? "selected" : null)">
+                                                        @d
+                                                    </option>
+                                                }
+                                            </select>
+                                            <button class="btn btn-outline-primary" type="submit">Güncelle</button>
+                                        </div>
+                                    </form>
+
+                                    <form asp-action="AssignForm" method="post" class="mb-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+
+                                        <div class="input-group input-group-sm">
+                                            <select name="takipEden" class="form-select">
+                                                <option value="">Boş</option>
+                                                @foreach (var kisi in kisiSecenekleri)
+                                                {
+                                                    <option value="@kisi" selected="@(item.TakipEden == kisi ? "selected" : null)">
+                                                        @kisi
+                                                    </option>
+                                                }
+                                            </select>
+                                            <button class="btn btn-outline-secondary" type="submit">Ata</button>
+                                        </div>
+                                    </form>
+
+                                    <div class="task-actions">
+                                        <a asp-action="Index"
+                                           asp-route-q="@Model.Q"
+                                           asp-route-kisi="@selectedKisi"
+                                           asp-route-durum="@selectedDurum"
+                                           asp-route-page="@Model.Page"
+                                           asp-route-pageSize="@Model.PageSize"
+                                           asp-route-selectedTaskId="@item.Id"
+                                           class="btn btn-sm btn-outline-dark">
+                                            Detay
+                                        </a>
+
+                                        <form asp-action="DeleteForm" method="post" onsubmit="return confirm('Kayıt silinsin mi?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Sil</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="empty-column">Bu durumda kayıt yok.</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center flex-wrap">
+
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="Index"
+                   asp-route-q="@Model.Q"
+                   asp-route-kisi="@selectedKisi"
+                   asp-route-durum="@selectedDurum"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-pageSize="@Model.PageSize">
+                    Önceki
+                </a>
+            </li>
+
+            @for (var i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(Model.Page == i ? "active" : "")">
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-q="@Model.Q"
+                       asp-route-kisi="@selectedKisi"
+                       asp-route-durum="@selectedDurum"
+                       asp-route-page="@i"
+                       asp-route-pageSize="@Model.PageSize">
+                        @i
+                    </a>
+                </li>
+            }
+
+            <li class="page-item @(Model.Page >= totalPages ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="Index"
+                   asp-route-q="@Model.Q"
+                   asp-route-kisi="@selectedKisi"
+                   asp-route-durum="@selectedDurum"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-pageSize="@Model.PageSize">
+                    Sonraki
+                </a>
+            </li>
+
+        </ul>
+    </nav>
+
+    @if (Model.SelectedTask != null)
+    {
+        <div class="card filter-card mt-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Seçili Görev Detayı</strong>
+
+                <a asp-action="Index"
+                   asp-route-q="@Model.Q"
+                   asp-route-kisi="@selectedKisi"
+                   asp-route-durum="@selectedDurum"
+                   asp-route-page="@Model.Page"
+                   asp-route-pageSize="@Model.PageSize"
+                   class="btn btn-sm btn-outline-secondary">
+                    Kapat
+                </a>
+            </div>
+
+            <div class="card-body">
+                <h5>@Model.SelectedTask.TalepKonusu</h5>
+
+                <div class="text-muted mb-3">
+                    @(Model.SelectedTask.MusteriAdi ?? "-") -
+                    @(Model.SelectedTask.Durum ?? "-")
+                </div>
+
+                <form asp-action="AddYorumForm" method="post" class="mb-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="jiraTaskId" value="@Model.SelectedTask.Id" />
+                    <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+
+                    <div class="row g-2">
+                        <div class="col-lg-3">
+                            <input name="ekleyen" class="form-control" placeholder="Ekleyen" />
+                        </div>
+
+                        <div class="col-lg-7">
+                            <input name="yorum" class="form-control" placeholder="Yorum yaz..." required />
+                        </div>
+
+                        <div class="col-lg-2 d-grid">
+                            <button type="submit" class="btn btn-primary">Yorum Ekle</button>
+                        </div>
+                    </div>
+                </form>
+
+                @if (Model.SelectedTask.Yorumlar != null && Model.SelectedTask.Yorumlar.Any())
+                {
+                    foreach (var yorum in Model.SelectedTask.Yorumlar.OrderByDescending(x => x.Tarih))
+                    {
+                        <div class="border rounded p-2 mb-2">
+                            <div class="small text-muted">
+                                @yorum.Tarih.ToString("dd.MM.yyyy HH:mm") -
+                                @(yorum.Ekleyen ?? "Sistem")
+                            </div>
+                            <div>@yorum.YorumMetni</div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-muted">Henüz yorum yok.</div>
+                }
+            </div>
+        </div>
+    }
+
+</div>
