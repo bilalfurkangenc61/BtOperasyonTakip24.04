@@ -1,0 +1,102 @@
+@model BtOperasyonTakip.Models.JiraBoardViewModel
+@{
+    ViewData["Title"] = "İş Takip";
+
+    var durumListesi = (ViewBag.DurumListesi as List<string>) ?? new List<string>();
+    var pagedTasks = (ViewBag.PagedTasks as List<BtOperasyonTakip.Models.JiraTask>) ?? new List<BtOperasyonTakip.Models.JiraTask>();
+
+    var anaDurumlar = new[] { "Beklemede", "Aktif", "Döküman İletildi", "Tamamlandı" };
+
+    durumListesi = anaDurumlar
+        .Concat(durumListesi.Where(d => !anaDurumlar.Contains(d, StringComparer.OrdinalIgnoreCase)))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    var durumTaskMap = durumListesi.ToDictionary(
+        durum => durum,
+        durum => pagedTasks.Where(t => (t.Durum ?? "").Trim().Equals(durum, StringComparison.OrdinalIgnoreCase)).ToList(),
+        StringComparer.OrdinalIgnoreCase);
+}
+
+<style>
+.kanban-board { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; }
+.board-col { background:#fff; border-radius:10px; padding:10px; border:1px solid #ddd; }
+.task-card { padding:10px; margin-bottom:10px; border-left:5px solid #0d6efd; background:#f8f9fa; border-radius:6px; }
+.d-none { display:none!important; }
+</style>
+
+<div class="container mt-3">
+
+    <!-- BUTONLAR -->
+    <div class="mb-3">
+        <button class="btn btn-primary durum-btn" data="all">Tümü</button>
+        <button class="btn btn-outline-primary durum-btn" data="Aktif">Aktif</button>
+        <button class="btn btn-outline-primary durum-btn" data="Döküman İletildi">Döküman</button>
+        <button class="btn btn-outline-primary durum-btn" data="Tamamlandı">Tamamlandı</button>
+        <button class="btn btn-outline-primary durum-btn" data="Beklemede">Beklemede</button>
+    </div>
+
+    <!-- BOARD -->
+    <div class="kanban-board" id="board">
+        @foreach (var durum in durumListesi)
+        {
+            var tasks = durumTaskMap[durum];
+
+            <div class="board-col" data-col="@durum">
+                <h5>@durum (@tasks.Count)</h5>
+
+                @foreach (var t in tasks)
+                {
+                    <div class="task-card" data-id="@t.Id">
+                        <b>@t.TalepKonusu</b><br />
+                        <small>@t.MusteriAdi</small><br />
+                        <small>@t.TakipEden</small>
+                    </div>
+                }
+
+                @if (!tasks.Any())
+                {
+                    <div class="text-muted">Boş</div>
+                }
+            </div>
+        }
+    </div>
+
+</div>
+
+@section Scripts{
+<script>
+
+function filterBoard(durum){
+    const cols = document.querySelectorAll(".board-col");
+
+    cols.forEach(c=>{
+        if(durum==="all"){
+            c.classList.remove("d-none");
+            c.style.gridColumn="";
+        } else {
+            if(c.getAttribute("data-col")===durum){
+                c.classList.remove("d-none");
+                c.style.gridColumn="1/-1"; // full width
+            } else {
+                c.classList.add("d-none");
+            }
+        }
+    });
+
+    document.querySelectorAll(".durum-btn").forEach(b=>{
+        b.classList.remove("btn-primary");
+        b.classList.add("btn-outline-primary");
+    });
+
+    document.querySelector(`.durum-btn[data="${durum}"]`).classList.add("btn-primary");
+}
+
+document.querySelectorAll(".durum-btn").forEach(btn=>{
+    btn.addEventListener("click",function(){
+        filterBoard(this.getAttribute("data"));
+    });
+});
+
+</script>
+}
