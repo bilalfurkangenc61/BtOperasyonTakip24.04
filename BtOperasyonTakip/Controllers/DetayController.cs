@@ -20,6 +20,17 @@ namespace BtOperasyonTakip.Controllers
             _context = context;
         }
 
+        private List<string> GetDurumSecenekleri()
+        {
+            return _context.Parametreler
+                .AsNoTracking()
+                .Where(x => x.Tur == "Durum" && x.ParAdi != null && x.ParAdi != "")
+                .Select(x => x.ParAdi!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+        }
+
         private List<string> GetKullaniciSecenekleri()
         {
             return _context.Users
@@ -97,9 +108,12 @@ namespace BtOperasyonTakip.Controllers
                 query = query.Where(x => x.KayitTarihi != null && x.KayitTarihi.Value.Date <= max.Date);
             }
 
+            var durumSecenekleri = GetDurumSecenekleri();
+
             var aktifCount = query.Count(x => (x.Durum ?? string.Empty).Trim() == "Aktif");
-            var pasifCount = query.Count(x => (x.Durum ?? string.Empty).Trim() == "Pasif");
             var beklemedeCount = query.Count(x => (x.Durum ?? string.Empty).Trim() == "Beklemede");
+            ViewBag.DokumanIletildiCount = query.Count(x => (x.Durum ?? string.Empty).Trim() == "Döküman İletildi");
+            ViewBag.Durumlar = durumSecenekleri;
 
             var orderedQuery = query
                 .OrderByDescending(x => x.KayitTarihi)
@@ -190,7 +204,7 @@ namespace BtOperasyonTakip.Controllers
                 PageSize = pageSize,
                 TotalCount = totalCount,
                 AktifCount = aktifCount,
-                PasifCount = pasifCount,
+                PasifCount = 0,
                 BeklemedeCount = beklemedeCount
             };
 
@@ -245,7 +259,8 @@ namespace BtOperasyonTakip.Controllers
                     CreateColumn(4, 4, 34),
                     CreateColumn(5, 5, 60),
                     CreateColumn(6, 6, 22),
-                    CreateColumn(7, 7, 24)
+                    CreateColumn(7, 7, 24),
+                    CreateColumn(8, 8, 18)
                 ));
 
                 worksheet.Append(sheetData);
@@ -259,7 +274,8 @@ namespace BtOperasyonTakip.Controllers
                     CreateTextCell("D", currentRow, "İş / Görüşülen", 1),
                     CreateTextCell("E", currentRow, "Açıklama", 1),
                     CreateTextCell("F", currentRow, "Ekleyen", 1),
-                    CreateTextCell("G", currentRow, "Saha Sorumlusu", 1)
+                    CreateTextCell("G", currentRow, "Saha Sorumlusu", 1),
+                    CreateTextCell("H", currentRow, "Durum", 1)
                 );
                 sheetData.Append(header);
 
@@ -275,14 +291,15 @@ namespace BtOperasyonTakip.Controllers
                         CreateTextCell("D", currentRow, detay.Gorusulen, 0),
                         CreateTextCell("E", currentRow, detay.Aciklama, 0),
                         CreateTextCell("F", currentRow, detay.Kekleyen, 0),
-                        CreateTextCell("G", currentRow, detay.Musteri?.TalepSahibi, 0)
+                        CreateTextCell("G", currentRow, detay.Musteri?.TalepSahibi, 0),
+                        CreateTextCell("H", currentRow, detay.Musteri?.Durum, 0)
                     );
 
                     sheetData.Append(row);
                 }
 
                 var lastRowIndex = currentRow == 1 ? 1U : currentRow;
-                var filterRange = $"A1:G{lastRowIndex}";
+                var filterRange = $"A1:H{lastRowIndex}";
                 worksheet.Append(new AutoFilter { Reference = filterRange });
 
                 if (detaylar.Any())
@@ -307,8 +324,9 @@ namespace BtOperasyonTakip.Controllers
                         new TableColumn { Id = 4U, Name = "İş / Görüşülen" },
                         new TableColumn { Id = 5U, Name = "Açıklama" },
                         new TableColumn { Id = 6U, Name = "Ekleyen" },
-                        new TableColumn { Id = 7U, Name = "Saha Sorumlusu" }
-                    ) { Count = 7U });
+                        new TableColumn { Id = 7U, Name = "Saha Sorumlusu" },
+                        new TableColumn { Id = 8U, Name = "Durum" }
+                    ) { Count = 8U });
 
                     tableDefinitionPart.Table.AppendChild(new TableStyleInfo
                     {
@@ -377,13 +395,9 @@ namespace BtOperasyonTakip.Controllers
                 musteri.TalepSahibi = musteri.TalepSahibi?.Trim();
                 musteri.Aciklama = musteri.Aciklama?.Trim();
 
-                var durumlar = _context.Parametreler
-                    .AsNoTracking()
-                    .Where(x => x.Tur == "Durum" && x.ParAdi != null && x.ParAdi != "")
-                    .Select(x => x.ParAdi!)
-                    .ToList();
+                var durumSecenekleri = GetDurumSecenekleri();
 
-                if (string.IsNullOrWhiteSpace(musteri.Durum) || !durumlar.Contains(musteri.Durum, StringComparer.OrdinalIgnoreCase))
+                if (string.IsNullOrWhiteSpace(musteri.Durum) || !durumSecenekleri.Contains(musteri.Durum, StringComparer.OrdinalIgnoreCase))
                 {
                     TempData["MusteriError"] = "Geçerli bir durum seçiniz.";
                     return RedirectToLocalOr(returnUrl, "Index", new { controller = "Musteri" });
@@ -445,6 +459,15 @@ namespace BtOperasyonTakip.Controllers
 
                 var eskiDurum = (existingMusteri.Durum ?? string.Empty).Trim();
                 var yeniDurum = (musteri.Durum ?? string.Empty).Trim();
+
+                var durumSecenekleri = GetDurumSecenekleri();
+
+                if (string.IsNullOrWhiteSpace(yeniDurum) || !durumSecenekleri.Contains(yeniDurum, StringComparer.OrdinalIgnoreCase))
+                {
+                    TempData["MusteriError"] = "Geçerli bir durum seçiniz.";
+                    return RedirectToLocalOr(returnUrl, "Index", new { controller = "Musteri" });
+                }
+
                 var durumDegisti = !string.Equals(eskiDurum, yeniDurum, StringComparison.OrdinalIgnoreCase);
 
                 if (durumDegisti && string.IsNullOrWhiteSpace(musteri.Aciklama))
@@ -458,7 +481,7 @@ namespace BtOperasyonTakip.Controllers
                 existingMusteri.Telefon = musteri.Telefon;
                 existingMusteri.SiteUrl = musteri.SiteUrl;
                 existingMusteri.Teknoloji = musteri.Teknoloji;
-                existingMusteri.Durum = musteri.Durum;
+                existingMusteri.Durum = yeniDurum;
                 existingMusteri.TalepSahibi = musteri.TalepSahibi;
                 existingMusteri.Aciklama = musteri.Aciklama;
 

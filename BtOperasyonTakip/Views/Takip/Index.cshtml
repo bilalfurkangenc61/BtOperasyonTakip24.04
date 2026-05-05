@@ -3,13 +3,14 @@
     ViewData["Title"] = "İş Takip";
 
     var durumListesi = (ViewBag.DurumListesi as List<string>) ?? new List<string>();
+    var anaDurumlar = ((IEnumerable<string>?)ViewBag.AnaDurumlar ?? new[] { "Aktif", "Beklemede", "Tamamlandı" }).ToList();
+    var selectedEkstraDurumlar = ((IEnumerable<string>?)ViewBag.SelectedEkstraDurumlar ?? Enumerable.Empty<string>()).ToList();
     var pagedTasks = (ViewBag.PagedTasks as List<BtOperasyonTakip.Models.JiraTask>) ?? new List<BtOperasyonTakip.Models.JiraTask>();
     var durumTaskMap = durumListesi.ToDictionary(
         durum => durum,
         durum => pagedTasks.Where(t => string.Equals((t.Durum ?? "").Trim(), durum, StringComparison.OrdinalIgnoreCase)).ToList(),
         StringComparer.OrdinalIgnoreCase);
 
-    var anaDurumlar = new[] { "Beklemede", "Aktif", "Döküman İletildi", "Tamamlandı" };
     var siraliDurumListesi = anaDurumlar
         .Concat(durumListesi.Where(d => !anaDurumlar.Contains(d, StringComparer.OrdinalIgnoreCase)))
         .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -20,9 +21,17 @@
 
     var beklemedeCount = durumTaskMap.TryGetValue("Beklemede", out var beklemedeTasks) ? beklemedeTasks.Count : 0;
     var aktifCount = durumTaskMap.TryGetValue("Aktif", out var aktifTasks) ? aktifTasks.Count : 0;
-    var dokumanIletildiCount = durumTaskMap.TryGetValue("Döküman İletildi", out var dokumanIletildiTasks) ? dokumanIletildiTasks.Count : 0;
     var tamamlandiCount = durumTaskMap.TryGetValue("Tamamlandı", out var tamamlandiTasks) ? tamamlandiTasks.Count : 0;
     var totalCount = durumTaskMap.Sum(x => x.Value.Count);
+
+    var gorunenKolonlar = anaDurumlar
+        .Concat(selectedEkstraDurumlar)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    var ekstraDurumSecenekleri = siraliDurumListesi
+        .Where(d => !anaDurumlar.Contains(d, StringComparer.OrdinalIgnoreCase))
+        .ToList();
 
     var talepAcanList = Model?.TalepAcanSecenekleri ?? new List<string>();
     var takipEdenList = Model?.TakipEdenSecenekleri ?? new List<string>();
@@ -40,7 +49,6 @@
         "Beklemede" => "Aksiyon bekleyen kayıtlar",
         "Aktif" => "Çalışılan işler",
         "Tamamlandı" => "Sonuçlanan işler",
-        "Döküman İletildi" => "Döküman paylaşımı tamamlanan işler",
         _ => "Bu duruma ait kayıtlar"
     };
 
@@ -51,7 +59,6 @@
             "Beklemede" => ("#f59e0b", "#fff7d6", "#ffe28a", "#8f5b00"),
             "Aktif" => ("#2563eb", "#dbeafe", "#bfdbfe", "#1d4ed8"),
             "Tamamlandı" => ("#22c55e", "#e3fcef", "#abf5d1", "#006644"),
-            "Döküman İletildi" => ("#8b5cf6", "#f3e8ff", "#d8b4fe", "#7c3aed"),
             _ => GetDynamicStatusPalette(durum)
         };
     }
@@ -185,10 +192,20 @@
 
     .takip-top-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
-        align-items: start;
+        align-items: stretch;
         margin-bottom: 1rem;
+    }
+
+    .takip-top-grid > .takip-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .takip-top-grid > .takip-card .card-body {
+        flex: 1;
     }
 
     .takip-card {
@@ -709,6 +726,10 @@
                     Excel (JiraId Gruplu)
                 </a>
                 <a class="btn btn-sm btn-outline-light fw-semibold"
+                   href="@Url.Action("ExportExcelTumAylar", "Takip")">
+                    Excel (Tüm Aylar)
+                </a>
+                <a class="btn btn-sm btn-outline-light fw-semibold"
                    href="@Url.Action("ExcelDisiIsler", "Takip")">
                     Geliştirme / Eğitim Listesi
                 </a>
@@ -874,12 +895,31 @@
                         <label for="boardStatusFilter" class="form-label">Kolon Filtre</label>
                         <select id="boardStatusFilter" class="form-select responsive-select">
                             <option value="all" selected>Tümü</option>
-                            @foreach (var durum in durumListesi)
+                            @foreach (var durum in gorunenKolonlar)
                             {
                                 <option value="@durum">@durum</option>
                             }
                         </select>
                     </div>
+
+                    @if (ekstraDurumSecenekleri.Any())
+                    {
+                        <div class="col-12">
+                            <label class="form-label">Ek durum kolonları</label>
+                            <div class="takip-column-toggle-bar pt-0 mt-0 border-0">
+                                @foreach (var ekstraDurum in ekstraDurumSecenekleri)
+                                {
+                                    <label class="takip-column-toggle-chip">
+                                        <input type="checkbox"
+                                               name="ekstraDurumlar"
+                                               value="@ekstraDurum"
+                                               checked="@(selectedEkstraDurumlar.Contains(ekstraDurum, StringComparer.OrdinalIgnoreCase))" />
+                                        <span>@ekstraDurum</span>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    }
 
                     <input type="hidden" name="page" value="1" />
                     <input type="hidden" name="pageSize" value="@pageSize" />
@@ -922,7 +962,7 @@
     </div>
 
     <div class="kanban-board" id="board">
-        @foreach (var durum in durumListesi)
+        @foreach (var durum in gorunenKolonlar)
         {
             var tasksForDurum = durumTaskMap.TryGetValue(durum, out var tasks) ? tasks : new List<BtOperasyonTakip.Models.JiraTask>();
             var statusPalette = GetStatusPalette(durum);
@@ -1030,12 +1070,12 @@
 
         function setCardStatusClass(card, yeniDurum) {
             if (!card) return;
-            card.classList.remove('status-beklemede', 'status-aktif', 'status-dokuman-iletildi', 'status-tamamlandi');
+            card.classList.remove('status-beklemede', 'status-aktif', 'status-pasif', 'status-tamamlandi');
 
             const st = normalizeStatus(yeniDurum);
             if (st === 'Beklemede') card.classList.add('status-beklemede');
             else if (st === 'Aktif') card.classList.add('status-aktif');
-            else if (st === 'Döküman İletildi') card.classList.add('status-dokuman-iletildi');
+            else if (st === 'Pasif') card.classList.add('status-pasif');
             else if (st === 'Tamamlandı') card.classList.add('status-tamamlandi');
         }
 

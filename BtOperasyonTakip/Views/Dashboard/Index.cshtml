@@ -322,9 +322,9 @@
     }
 
     .chart-box--pie {
-        height: 240px;
-        max-height: 240px;
-        padding: 6px 4px;
+        height: 260px;
+        max-height: 260px;
+        padding: 6px 8px 22px;
     }
 
     .dashboard-period-select {
@@ -791,6 +791,111 @@
             }
         });
 
+        const piePercentageLabelPlugin = {
+            id: 'piePercentageLabelPlugin',
+            afterDatasetsDraw(chart) {
+                if (chart.config.type !== 'pie') return;
+
+                const dataset = chart.data.datasets?.[0];
+                const values = (dataset?.data ?? []).map(x => Number(x) || 0);
+                const total = values.reduce((sum, value) => sum + value, 0);
+                if (total <= 0) return;
+
+                const meta = chart.getDatasetMeta(0);
+                const ctx = chart.ctx;
+
+                ctx.save();
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.textBaseline = 'middle';
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1;
+
+                const chartArea = chart.chartArea;
+                const rightLabels = [];
+                const leftLabels = [];
+
+                meta.data.forEach((element, index) => {
+                    const value = values[index];
+                    if (value <= 0) return;
+
+                    const percentage = (value / total) * 100;
+                    const label = `%${percentage >= 10 ? percentage.toFixed(0) : percentage.toFixed(1)}`;
+                    const angle = (element.startAngle + element.endAngle) / 2;
+                    const cos = Math.cos(angle);
+                    const sin = Math.sin(angle);
+                    const lineStartX = element.x + (cos * element.outerRadius);
+                    const lineStartY = element.y + (sin * element.outerRadius);
+                    const lineMidX = element.x + (cos * (element.outerRadius + 12));
+                    const lineMidY = element.y + (sin * (element.outerRadius + 12));
+
+                    const entry = {
+                        label,
+                        cos,
+                        lineStartX,
+                        lineStartY,
+                        lineMidX,
+                        lineMidY,
+                        labelX: cos >= 0 ? chartArea.right + 10 : chartArea.left - 10,
+                        labelY: element.y + (sin * (element.outerRadius + 24))
+                    };
+
+                    if (cos >= 0) rightLabels.push(entry);
+                    else leftLabels.push(entry);
+                });
+
+                function layoutSide(entries) {
+                    if (!entries.length) return;
+
+                    const minGap = 16;
+                    const topLimit = chartArea.top + 10;
+                    const bottomLimit = chartArea.bottom - 10;
+
+                    entries.sort((a, b) => a.labelY - b.labelY);
+
+                    let nextY = topLimit;
+                    entries.forEach(entry => {
+                        entry.labelY = Math.max(entry.labelY, nextY);
+                        nextY = entry.labelY + minGap;
+                    });
+
+                    const overflow = entries[entries.length - 1].labelY - bottomLimit;
+                    if (overflow > 0) {
+                        entries.forEach(entry => {
+                            entry.labelY -= overflow;
+                        });
+                    }
+
+                    if (entries[0].labelY < topLimit) {
+                        const underflow = topLimit - entries[0].labelY;
+                        entries.forEach(entry => {
+                            entry.labelY += underflow;
+                        });
+                    }
+                }
+
+                layoutSide(leftLabels);
+                layoutSide(rightLabels);
+
+                [...leftLabels, ...rightLabels].forEach(entry => {
+                    const labelLineEndX = entry.labelX + (entry.cos >= 0 ? -6 : 6);
+
+                    ctx.beginPath();
+                    ctx.moveTo(entry.lineStartX, entry.lineStartY);
+                    ctx.lineTo(entry.lineMidX, entry.lineMidY);
+                    ctx.lineTo(labelLineEndX, entry.labelY);
+                    ctx.stroke();
+
+                    ctx.textAlign = entry.cos >= 0 ? 'left' : 'right';
+                    ctx.fillText(entry.label, entry.labelX + (entry.cos >= 0 ? 4 : -4), entry.labelY);
+                });
+
+                ctx.restore();
+            }
+        };
+
+        Chart.register(piePercentageLabelPlugin);
+
         new Chart(document.getElementById('customerStatusChart'), {
             type: 'pie',
             data: {
@@ -806,7 +911,28 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
+                layout: {
+                    padding: {
+                        top: 8,
+                        right: 56,
+                        bottom: 42,
+                        left: 56
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const data = context.dataset.data.map(x => Number(x) || 0);
+                                const total = data.reduce((sum, value) => sum + value, 0);
+                                const value = Number(context.raw) || 0;
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                return `${context.label}: ${value} (%${percentage})`;
+                            }
+                        }
+                    }
+                }
             }
         });
 

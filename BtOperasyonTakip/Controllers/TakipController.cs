@@ -140,6 +140,15 @@ namespace BtOperasyonTakip.Controllers
             pageSize = pageSize < 1 ? DefaultPageSize : pageSize;
             pageSize = pageSize > MaxPageSize ? MaxPageSize : pageSize;
 
+            var anaDurumlar = new[] { "Beklemede", "Aktif", "Tamamlandı" };
+            var ekstraDurumlar = Request.Query["ekstraDurumlar"].ToArray();
+            var seciliEkstraDurumlar = (ekstraDurumlar ?? Array.Empty<string>())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Where(x => !anaDurumlar.Contains(x, StringComparer.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
             var talepAcanList = GetTalepAcanSecenekleri();
             var operasyonKullaniciList = GetOperasyonKullaniciSecenekleri();
             kisi = (kisi ?? string.Empty).Trim();
@@ -182,17 +191,19 @@ namespace BtOperasyonTakip.Controllers
                 .Take(pageSize)
                 .ToList();
 
-            var durumListesi = _context.Parametreler
+            var durumListesi = anaDurumlar
+                .Concat(_context.Parametreler
                 .AsNoTracking()
                 .Where(x => x.Tur == "Durum" && x.ParAdi != null && x.ParAdi != "")
                 .OrderBy(x => x.Id)
                 .Select(x => x.ParAdi!.Trim())
                 .Where(x => x != "")
-                .ToList()
+                .ToList())
                 .Concat(
                     paged
                         .Select(x => (x.Durum ?? string.Empty).Trim())
                         .Where(x => x != ""))
+                .Concat(seciliEkstraDurumlar)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
@@ -229,6 +240,8 @@ namespace BtOperasyonTakip.Controllers
             ViewBag.KisiSecenekleri = operasyonKullaniciList;
             ViewBag.SelectedKisi = kisi;
             ViewBag.DurumListesi = durumListesi;
+            ViewBag.AnaDurumlar = anaDurumlar;
+            ViewBag.SelectedEkstraDurumlar = seciliEkstraDurumlar;
             ViewBag.PagedTasks = paged;
             return View(model);
         }
@@ -533,6 +546,24 @@ namespace BtOperasyonTakip.Controllers
                 .Where(x => !ExcelDisiTalepTurleri.Contains((x.TalepTuru ?? string.Empty).Trim()))
                 .AsQueryable();
 
+            var rows = BuildExportTaskRows(query, true);
+            return CreateTaskExcelFile(rows, "IsTakip", $"IsTakip_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+        }
+
+        [HttpGet]
+        public IActionResult ExportExcelTumAylar()
+        {
+            var query = _context.JiraTasks
+                .AsNoTracking()
+                .Where(x => !ExcelDisiTalepTurleri.Contains((x.TalepTuru ?? string.Empty).Trim()))
+                .AsQueryable();
+
+            var rows = BuildExportTaskRows(query, false);
+            return CreateTaskExcelFile(rows, "IsTakipTumAylar", $"IsTakip_TumAylar_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+        }
+
+        private List<ExportTaskRow> BuildExportTaskRows(IQueryable<JiraTask> query, bool orderByJiraId)
+        {
             var yorumLookup = _context.JiraYorumlar
                 .AsNoTracking()
                 .OrderBy(y => y.Tarih)
@@ -565,16 +596,23 @@ namespace BtOperasyonTakip.Controllers
                     Durum = x.Durum,
                     OlusturmaTarihi = x.OlusturmaTarihi
                 })
-                .ToList()
-                .OrderBy(x => x.JiraId ?? "", new JiraIdNaturalComparer())
-                .ThenByDescending(x => x.OlusturmaTarihi)
+                .ToList();
+
+            var orderedRows = orderByJiraId
+                ? rows.OrderBy(x => x.JiraId ?? string.Empty, new JiraIdNaturalComparer()).ThenByDescending(x => x.OlusturmaTarihi)
+                : rows.OrderByDescending(x => x.OlusturmaTarihi).ThenBy(x => x.JiraId ?? string.Empty, new JiraIdNaturalComparer());
+
+            return orderedRows
                 .Select(x =>
                 {
                     x.Yorumlar = yorumLookup.TryGetValue(x.Id, out var yorumlar) ? yorumlar : string.Empty;
                     return x;
                 })
                 .ToList();
+        }
 
+        private IActionResult CreateTaskExcelFile(List<ExportTaskRow> rows, string sheetName, string fileName)
+        {
             using var ms = new MemoryStream();
 
             using (var document = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook, true))
@@ -617,7 +655,7 @@ namespace BtOperasyonTakip.Controllers
                 {
                     Id = workbookPart.GetIdOfPart(isTakipPart),
                     SheetId = sheetId++,
-                    Name = "IsTakip"
+                    Name = sheetName
                 });
 
                 workbookPart.Workbook.Save();
@@ -625,7 +663,6 @@ namespace BtOperasyonTakip.Controllers
 
             ms.Position = 0;
 
-                var fileName = $"IsTakip_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
             return File(
                 ms.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

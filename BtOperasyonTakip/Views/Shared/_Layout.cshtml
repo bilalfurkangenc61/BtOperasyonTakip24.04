@@ -243,6 +243,7 @@
                         <li class="nav-item"><a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "ToplantiNotlari" ? "active" : "")" asp-controller="ToplantiNotlari" asp-action="Index"><span class="nav-icon">🗒️</span><span>Toplantı Notları</span></a></li>
 
                         <li class="nav-item"><a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Takip" ? "active" : "")" asp-controller="Takip" asp-action="Index"><span class="nav-icon">🧾</span><span>İş Takip</span></a></li>
+                        <li class="nav-item"><a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Ticket" ? "active" : "")" asp-controller="Ticket" asp-action="Index"><span class="nav-icon">🎫</span><span>Ticketlar</span></a></li>
                        
 
                         <li class="nav-item"><a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Hatalar" ? "active" : "")" asp-controller="Hatalar" asp-action="Index"><span class="nav-icon">🚨</span><span>Hatalar</span></a></li>
