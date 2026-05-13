@@ -699,6 +699,7 @@ namespace BtOperasyonTakip.Controllers
                     .FirstOrDefault() ?? string.Empty;
             }
 
+
             ViewBag.KullaniciSecenekleri = GetOperasyonKullaniciSecenekleri();
             ViewBag.TaskLatestDetaylar = new Dictionary<int, Detay?> { [task.Id] = latestDetail };
             ViewBag.TaskMusteriDurumlari = new Dictionary<int, string> { [task.Id] = musteriDurumu.Trim() };
