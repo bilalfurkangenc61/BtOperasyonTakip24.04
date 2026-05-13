@@ -264,7 +264,7 @@ namespace BtOperasyonTakip.Controllers
 
                     if (test == null)
                     {
-                        ModelState.AddModelError("", "Kurumsal ticket ataması için 'test' kullanıcısı bulunamadı (Operasyon rolünde olmalı, UserName = 'test').");
+                        ModelState.AddModelError("", "Kurumsal ticket ataması için 'test' kullanıcısı bulunamadı. Kullanıcı Operasyon rolünde olmalı ve UserName değeri 'test' olmalıdır.");
                         return View(ticket);
                     }
 
@@ -294,7 +294,7 @@ namespace BtOperasyonTakip.Controllers
                 _context.Tickets.Add(ticket);
                 _context.SaveChanges();
 
-                TempData["Success"] = "✅ Ticket oluşturuldu! Operasyon 1 onayı bekleniyor.";
+                TempData["Success"] = "Ticket oluşturuldu. Operasyon 1 onayı bekleniyor.";
                 return RedirectToAction("Index");
             }
             catch (Exception ex)
@@ -309,11 +309,11 @@ namespace BtOperasyonTakip.Controllers
         public IActionResult Operasyon1Decide([FromBody] Operasyon1DecideRequest request)
         {
             if (request?.Id <= 0)
-                return Json(new { success = false, message = "Geçersiz Ticket ID!" });
+                return Json(new { success = false, message = "Geçersiz ticket ID." });
 
             var ticket = _context.Tickets.FirstOrDefault(t => t.Id == request.Id);
             if (ticket == null)
-                return Json(new { success = false, message = "Ticket bulunamadı!" });
+                return Json(new { success = false, message = "Ticket bulunamadı." });
 
             if (ticket.Durum != TicketDurumOperasyon1)
                 return Json(new { success = false, message = $"Ticket bu aşamada Operasyon 1 kararına uygun değil. Durum: {ticket.Durum}" });
@@ -331,7 +331,7 @@ namespace BtOperasyonTakip.Controllers
             ticket.Durum = TicketDurumUyum;
 
             _context.SaveChanges();
-            return Json(new { success = true, message = "✅ Operasyon 1 kararı kaydedildi. Uyum onayı bekleniyor." });
+            return Json(new { success = true, message = "Operasyon 1 kararı kaydedildi. Uyum onayı bekleniyor." });
         }
 
         [HttpPost]
@@ -339,11 +339,11 @@ namespace BtOperasyonTakip.Controllers
         public IActionResult Operasyon2Decide([FromBody] Operasyon2DecideRequest request)
         {
             if (request?.Id <= 0)
-                return Json(new { success = false, message = "Geçersiz Ticket ID!" });
+                return Json(new { success = false, message = "Geçersiz ticket ID." });
 
             var ticket = _context.Tickets.FirstOrDefault(t => t.Id == request.Id);
             if (ticket == null)
-                return Json(new { success = false, message = "Ticket bulunamadı!" });
+                return Json(new { success = false, message = "Ticket bulunamadı." });
 
             if (ticket.Durum != TicketDurumOperasyon2)
                 return Json(new { success = false, message = $"Ticket bu aşamada Operasyon 2 kararına uygun değil. Durum: {ticket.Durum}" });
@@ -389,7 +389,7 @@ namespace BtOperasyonTakip.Controllers
             }
 
             _context.SaveChanges();
-            return Json(new { success = true, message = "✅ Operasyon 2 kararı kaydedildi." });
+            return Json(new { success = true, message = "Operasyon 2 kararı kaydedildi." });
         }
 
         [HttpPost]
@@ -397,14 +397,14 @@ namespace BtOperasyonTakip.Controllers
         public IActionResult EntegrasyonTamamlandi([FromBody] EntegrasyonTamamlandiRequest request)
         {
             if (request?.Id <= 0)
-                return Json(new { success = false, message = "Geçersiz Ticket ID!" });
+                return Json(new { success = false, message = "Geçersiz ticket ID." });
 
             var ticket = _context.Tickets.FirstOrDefault(t => t.Id == request.Id);
             if (ticket == null)
-                return Json(new { success = false, message = "Ticket bulunamadı!" });
+                return Json(new { success = false, message = "Ticket bulunamadı." });
 
             if (ticket.Durum != TicketDurumEntegrasyonBekliyor)
-                return Json(new { success = false, message = $"Ticket bu aşamada entegrasyon tamamlamaya uygun değil. Durum: {ticket.Durum}" });
+                return Json(new { success = false, message = $"Ticket bu aşamada entegrasyon tamamlama işlemine uygun değil. Durum: {ticket.Durum}" });
 
             var userId = int.TryParse(User.FindFirst("UserId")?.Value, out var uid) ? uid : 0;
             if (!User.IsInRole("Admin") && ticket.AtananOperasyonUserId != userId)
@@ -418,7 +418,7 @@ namespace BtOperasyonTakip.Controllers
                 task.Durum = "Aktif";
 
             _context.SaveChanges();
-            return Json(new { success = true, message = "✅ Entegrasyon tamamlandı. Ticket tekrar Saha Canli Bekleniyor durumuna alındı." });
+            return Json(new { success = true, message = "Entegrasyon tamamlandı. Ticket tekrar Saha Canli Bekleniyor durumuna alındı." });
         }
 
         [HttpPost]
@@ -426,7 +426,7 @@ namespace BtOperasyonTakip.Controllers
         public IActionResult SahaCanliAcildi([FromBody] SahaCanliRequest request)
         {
             if (request?.Id <= 0)
-                return Json(new { success = false, message = "Geçersiz Ticket ID!" });
+                return Json(new { success = false, message = "Geçersiz ticket ID." });
 
             var canliOrtamId = (request.CanliOrtamId ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(canliOrtamId))
@@ -437,7 +437,7 @@ namespace BtOperasyonTakip.Controllers
 
             var ticket = _context.Tickets.FirstOrDefault(t => t.Id == request.Id);
             if (ticket == null)
-                return Json(new { success = false, message = "Ticket bulunamadı!" });
+                return Json(new { success = false, message = "Ticket bulunamadı." });
 
             var userId = int.TryParse(User.FindFirst("UserId")?.Value, out var uid) ? uid : 0;
             if (!User.IsInRole("Admin") && ticket.OlusturanUserId != userId)
@@ -508,7 +508,7 @@ namespace BtOperasyonTakip.Controllers
             ticket.Durum = TicketDurumMusteriKaydedildi;
 
             _context.SaveChanges();
-            return Json(new { success = true, message = "✅ Canlı açılış kaydedildi. Müşteri kaydı oluşturuldu/güncellendi." });
+            return Json(new { success = true, message = "Canlı açılış kaydedildi. Müşteri kaydı oluşturuldu veya güncellendi." });
         }
 
         [HttpPost]
@@ -516,11 +516,11 @@ namespace BtOperasyonTakip.Controllers
         public IActionResult SahaReddet([FromBody] SahaRedRequest request)
         {
             if (request?.Id <= 0)
-                return Json(new { success = false, message = "Geçersiz Ticket ID!" });
+                return Json(new { success = false, message = "Geçersiz ticket ID." });
 
             var ticket = _context.Tickets.FirstOrDefault(t => t.Id == request.Id);
             if (ticket == null)
-                return Json(new { success = false, message = "Ticket bulunamadı!" });
+                return Json(new { success = false, message = "Ticket bulunamadı." });
 
             var userId = int.TryParse(User.FindFirst("UserId")?.Value, out var uid) ? uid : 0;
             if (!User.IsInRole("Admin") && ticket.OlusturanUserId != userId)
@@ -534,7 +534,7 @@ namespace BtOperasyonTakip.Controllers
             ticket.KararAciklamasi = not;
 
             _context.SaveChanges();
-            return Json(new { success = true, message = "✅ Ticket reddedildi." });
+            return Json(new { success = true, message = "Ticket reddedildi." });
         }
 
         [HttpPost]
@@ -542,11 +542,11 @@ namespace BtOperasyonTakip.Controllers
         public IActionResult SahaEksikEvrakTamamlandi([FromBody] SahaEksikEvrakTamamlandiRequest request)
         {
             if (request?.Id <= 0)
-                return Json(new { success = false, message = "Geçersiz Ticket ID!" });
+                return Json(new { success = false, message = "Geçersiz ticket ID." });
 
             var ticket = _context.Tickets.FirstOrDefault(t => t.Id == request.Id);
             if (ticket == null)
-                return Json(new { success = false, message = "Ticket bulunamadı!" });
+                return Json(new { success = false, message = "Ticket bulunamadı." });
 
             var userId = int.TryParse(User.FindFirst("UserId")?.Value, out var uid) ? uid : 0;
             if (!User.IsInRole("Admin") && ticket.OlusturanUserId != userId)
@@ -561,7 +561,7 @@ namespace BtOperasyonTakip.Controllers
             ticket.UyumOnayTarihi = null;
 
             _context.SaveChanges();
-            return Json(new { success = true, message = "✅ Eksik evrak tamamlandı. Ticket yeniden uyum onayına gönderildi." });
+            return Json(new { success = true, message = "Eksik evrak tamamlandı. Ticket yeniden uyum onayına gönderildi." });
         }
 
         [HttpPost]
@@ -639,10 +639,10 @@ namespace BtOperasyonTakip.Controllers
 
             _context.SaveChanges();
             var mesaj = assignmentChanged && statusChanged
-                ? $"✅ Kişi ve durum güncellendi. ({oldStatus} → {ticket.Durum})"
+                ? $"Kişi ve durum güncellendi. ({oldStatus} → {ticket.Durum})"
                 : assignmentChanged
-                    ? "✅ Kişi ataması güncellendi."
-                    : $"✅ Durum güncellendi. ({oldStatus} → {ticket.Durum})";
+                    ? "Kişi ataması güncellendi."
+                    : $"Durum güncellendi. ({oldStatus} → {ticket.Durum})";
 
             return Json(new { success = true, message = mesaj });
         }

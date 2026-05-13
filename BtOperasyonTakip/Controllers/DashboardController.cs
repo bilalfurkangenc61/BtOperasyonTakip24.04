@@ -123,6 +123,7 @@ namespace BtOperasyonTakip.Controllers
                     || (m.DurumDegisiklikTarihi.HasValue && m.DurumDegisiklikTarihi.Value >= seciliAyBaslangic && m.DurumDegisiklikTarihi.Value < seciliAyBitis))
                 .ToList();
 
+            var aktifMusteriSeciliAy = musterilerSeciliAy.Count(m => DurumEsitMi(m.Durum, "Aktif"));
             var pasifMusteriSeciliAy = musterilerSeciliAy.Count(m => DurumEsitMi(m.Durum, "Pasif"));
 
             var durumSayac = musterilerSeciliAy
@@ -159,8 +160,8 @@ namespace BtOperasyonTakip.Controllers
 
             var model = new DashboardViewModel
             {
-                ToplamMusteri = musteriler.Count,
-                AktifMusteri = aktifMusteri,
+                ToplamMusteri = musterilerSeciliAy.Count,
+                AktifMusteri = aktifMusteriSeciliAy,
                 PasifMusteri = pasifMusteriSeciliAy,
                 Bekleyen = bekleyenIs,
                 BuAyEklenen = buAyEklenen,

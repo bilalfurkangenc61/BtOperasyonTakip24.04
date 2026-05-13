@@ -139,15 +139,15 @@
 
     <div class="detay-hero mb-4 d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-3">
         <div>
-            <h2 class="mb-1 text-white">📋 Görüşme Detayları</h2>
-            <div class="text-white-50">Müşteri kartlarından seçim yaparak detayları açabilirsiniz.</div>
+            <h2 class="mb-1 text-white"><span aria-hidden="true">📋</span> <span data-i18n="Görüşme Detayları">Görüşme Detayları</span></h2>
+            <div class="text-white-50" data-i18n="Müşteri kartlarından seçim yaparak detayları açabilirsiniz.">Müşteri kartlarından seçim yaparak detayları açabilirsiniz.</div>
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-            <span class="detay-chip">Toplam: @Model.TotalCount</span>
-            <span class="detay-chip">Beklemede: @Model.BeklemedeCount</span>
-            <span class="detay-chip">Aktif: @Model.AktifCount</span>
-            <span class="detay-chip">Döküman İletildi: @dokumanIletildiCount</span>
+            <span class="detay-chip"><span data-i18n="Toplam:">Toplam:</span> @Model.TotalCount</span>
+            <span class="detay-chip"><span data-i18n="Beklemede:">Beklemede:</span> @Model.BeklemedeCount</span>
+            <span class="detay-chip"><span data-i18n="Aktif:">Aktif:</span> @Model.AktifCount</span>
+            <span class="detay-chip"><span data-i18n="Döküman İletildi:">Döküman İletildi:</span> @dokumanIletildiCount</span>
         </div>
     </div>
 
@@ -159,35 +159,35 @@
 
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
-                        <label class="form-label">Müşteri Ara</label>
+                        <label class="form-label" data-i18n="Müşteri Ara">Müşteri Ara</label>
                         <input id="filterSearch" name="q" value="@Model.Q" type="text" class="form-control" placeholder="Firma, yetkili, telefon, teknoloji..." />
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Excel Ay (boş = Tüm Aylar)</label>
+                        <label class="form-label" data-i18n="Excel Ay (boş = Tüm Aylar)">Excel Ay (boş = Tüm Aylar)</label>
                         <input id="exportMonth" type="month" class="form-control" />
                     </div>
 
                     <div class="col-md-2 d-grid">
                         <button id="btnExportDetayMonth" type="button" class="btn btn-success">
-                            Excel İndir
+                            <span data-i18n="Excel İndir">Excel İndir</span>
                         </button>
                     </div>
 
                     <div class="col-md-1 d-grid">
                         <button id="btnExportDetayAll" type="button" class="btn btn-outline-success">
-                            Tüm Aylar
+                            <span data-i18n="Tüm Aylar">Tüm Aylar</span>
                         </button>
                     </div>
 
                     <div class="col-md-2 d-grid">
-                        <button type="submit" class="btn btn-primary">Ara</button>
+                        <button type="submit" class="btn btn-primary" data-i18n="Ara">Ara</button>
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Durum</label>
+                        <label class="form-label" data-i18n="Durum">Durum</label>
                         <select id="filterDurum" name="durum" class="form-select auto-submit-filter">
-                            <option value="">Tümü</option>
+                            <option value="" data-i18n="Tümü">Tümü</option>
                             @foreach (var durumSecenegi in durumlar)
                             {
                                 <option value="@durumSecenegi" selected="@(string.Equals(Model.Durum, durumSecenegi, StringComparison.OrdinalIgnoreCase))">@durumSecenegi</option>
@@ -196,9 +196,9 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Teknoloji</label>
+                        <label class="form-label" data-i18n="Teknoloji">Teknoloji</label>
                         <select id="filterTeknoloji" name="teknoloji" class="form-select auto-submit-filter">
-                            <option value="">Tümü</option>
+                            <option value="" data-i18n="Tümü">Tümü</option>
                             @foreach (var tech in Model.TeknolojiSecenekleri)
                             {
                                 <option value="@tech" selected="@(string.Equals(Model.Teknoloji, tech, StringComparison.OrdinalIgnoreCase))">@tech</option>
@@ -207,9 +207,9 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Talep Sahibi</label>
+                        <label class="form-label" data-i18n="Talep Sahibi">Talep Sahibi</label>
                         <select id="filterTalep" name="talepSahibi" class="form-select auto-submit-filter">
-                            <option value="">Tümü</option>
+                            <option value="" data-i18n="Tümü">Tümü</option>
                             @foreach (var talep in Model.TalepSahibiSecenekleri)
                             {
                                 <option value="@talep" selected="@(string.Equals(Model.TalepSahibi, talep, StringComparison.OrdinalIgnoreCase))">@talep</option>
@@ -218,7 +218,7 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Tarih Aralığı</label>
+                        <label class="form-label" data-i18n="Tarih Aralığı">Tarih Aralığı</label>
                         <div class="input-group">
                             <input type="date" id="minDate" name="minDate" value="@Model.MinDate" class="form-control auto-submit-filter" />
                             <input type="date" id="maxDate" name="maxDate" value="@Model.MaxDate" class="form-control auto-submit-filter" />
@@ -226,12 +226,12 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Gösterilen</label>
+                        <label class="form-label" data-i18n="Gösterilen">Gösterilen</label>
                         <div id="filteredCustomerCount" class="form-control bg-light">@(Model.TotalCount == 0 ? "0 kayıt" : $"{pageStart}-{pageEnd} / {Model.TotalCount} kayıt")</div>
                     </div>
 
                     <div class="col-md-3 d-grid">
-                        <a class="btn btn-outline-secondary" href="@Url.Action("Index", "Detay", new { page = 1, pageSize = pageSize })">Temizle</a>
+                        <a class="btn btn-outline-secondary" href="@Url.Action("Index", "Detay", new { page = 1, pageSize = pageSize })" data-i18n="Temizle">Temizle</a>
                     </div>
                 </div>
             </form>
@@ -263,7 +263,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start gap-2">
                                     <div>
-                                        <div class="small text-muted fw-semibold">Müşteri #@m.MusteriID</div>
+                                        <div class="small text-muted fw-semibold"><span data-i18n="Müşteri #">Müşteri #</span>@m.MusteriID</div>
                                         <div class="fw-bold fs-5">@m.Firma</div>
                                     </div>
                                     <span class="badge @durumCls">@(string.IsNullOrWhiteSpace(durum) ? "-" : durum)</span>
@@ -278,24 +278,24 @@
                                     {
                                         <span class="badge text-bg-light border">@m.TalepSahibi</span>
                                     }
-                                    <span class="badge text-bg-light border">Kayıt: @(m.KayitTarihi?.ToString("dd.MM.yyyy") ?? "-")</span>
+                                    <span class="badge text-bg-light border"><span data-i18n="Kayıt:">Kayıt:</span> @(m.KayitTarihi?.ToString("dd.MM.yyyy") ?? "-")</span>
                                 </div>
 
                                 <div class="musteri-card-meta mt-3">
                                     <div class="musteri-card-meta-item">
-                                        <div class="musteri-card-label">Yetkili</div>
+                                        <div class="musteri-card-label" data-i18n="Yetkili">Yetkili</div>
                                         <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(m.FirmaYetkilisi) ? "-" : m.FirmaYetkilisi)</div>
                                     </div>
                                     <div class="musteri-card-meta-item">
-                                        <div class="musteri-card-label">Telefon</div>
+                                        <div class="musteri-card-label" data-i18n="Telefon">Telefon</div>
                                         <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(m.Telefon) ? "-" : m.Telefon)</div>
                                     </div>
                                     <div class="musteri-card-meta-item">
-                                        <div class="musteri-card-label">Son Detay</div>
+                                        <div class="musteri-card-label" data-i18n="Son Detay">Son Detay</div>
                                         <div class="musteri-card-value">@(sonDetay == null ? "-" : sonDetay.Tarih.ToString("dd.MM.yyyy HH:mm"))</div>
                                     </div>
                                     <div class="musteri-card-meta-item">
-                                        <div class="musteri-card-label">Son Yorumu Ekleyen</div>
+                                        <div class="musteri-card-label" data-i18n="Son Yorumu Ekleyen">Son Yorumu Ekleyen</div>
                                         <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(sonDetay?.Kekleyen) ? "-" : sonDetay!.Kekleyen)</div>
                                     </div>
                                 </div>
@@ -303,11 +303,11 @@
                                 <div class="collapse musteri-card-collapse" id="@collapseId">
                                     <div class="musteri-card-meta">
                                         <div class="musteri-card-meta-item">
-                                            <div class="musteri-card-label">Site</div>
+                                            <div class="musteri-card-label" data-i18n="Site">Site</div>
                                             <div class="musteri-card-value">
                                                 @if (!string.IsNullOrWhiteSpace(m.SiteUrl))
                                                 {
-                                                    <a href="@m.SiteUrl" target="_blank" class="text-decoration-none card-link-action">🔗 Siteyi Aç</a>
+                                                <a href="@m.SiteUrl" target="_blank" class="text-decoration-none card-link-action">🔗 <span data-i18n="Siteyi Aç">Siteyi Aç</span></a>
                                                 }
                                                 else
                                                 {
@@ -316,15 +316,15 @@
                                             </div>
                                         </div>
                                         <div class="musteri-card-meta-item">
-                                            <div class="musteri-card-label">Açıklama</div>
+                                            <div class="musteri-card-label" data-i18n="Açıklama">Açıklama</div>
                                             <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(m.Aciklama) ? "-" : m.Aciklama)</div>
                                         </div>
                                         <div class="musteri-card-meta-item">
-                                            <div class="musteri-card-label">Son Yorum</div>
+                                            <div class="musteri-card-label" data-i18n="Son Yorum">Son Yorum</div>
                                             <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(sonDetay?.Aciklama) ? "-" : sonDetay!.Aciklama)</div>
                                         </div>
                                         <div class="musteri-card-meta-item">
-                                            <div class="musteri-card-label">Son İş / Görüşülen</div>
+                                            <div class="musteri-card-label" data-i18n="Son İş / Görüşülen">Son İş / Görüşülen</div>
                                             <div class="musteri-card-value">@(string.IsNullOrWhiteSpace(sonDetay?.Gorusulen) ? "-" : sonDetay!.Gorusulen)</div>
                                         </div>
                                     </div>
@@ -333,7 +333,7 @@
 
                             <div class="card-footer bg-white border-0 pt-0 pb-3 px-3">
                                 <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-sm btn-primary flex-fill btn-open-detay" data-id="@m.MusteriID" data-firma="@m.Firma">Detayları Aç</button>
+                                    <button type="button" class="btn btn-sm btn-primary flex-fill btn-open-detay" data-id="@m.MusteriID" data-firma="@m.Firma" data-i18n="Detayları Aç">Detayları Aç</button>
                                     <button type="button" class="btn btn-sm btn-outline-warning edit-btn" data-id="@m.MusteriID">✏️</button>
                                     <button type="button" class="btn btn-sm btn-outline-danger delete-btn" data-id="@m.MusteriID">❌</button>
                                 </div>
@@ -345,7 +345,7 @@
                 @if (!musteriList.Any())
                 {
                     <div class="col-12">
-                        <div class="alert alert-light border text-muted mb-0">Aradığınız kriterlere uygun müşteri bulunamadı.</div>
+                        <div class="alert alert-light border text-muted mb-0" data-i18n="Aradığınız kriterlere uygun müşteri bulunamadı.">Aradığınız kriterlere uygun müşteri bulunamadı.</div>
                     </div>
                 }
             </div>
@@ -355,7 +355,7 @@
     <nav class="mt-4" aria-label="Detaylar sayfalama">
         <ul class="pagination pagination-sm flex-wrap mb-0">
             <li class="page-item @(currentPage <= 1 ? "disabled" : "")">
-                <a class="page-link" href="@Url.Action("Index", "Detay", new { q = Model.Q, durum = Model.Durum, teknoloji = Model.Teknoloji, talepSahibi = Model.TalepSahibi, minDate = Model.MinDate, maxDate = Model.MaxDate, page = currentPage - 1, pageSize = pageSize })">Önceki</a>
+                <a class="page-link" href="@Url.Action("Index", "Detay", new { q = Model.Q, durum = Model.Durum, teknoloji = Model.Teknoloji, talepSahibi = Model.TalepSahibi, minDate = Model.MinDate, maxDate = Model.MaxDate, page = currentPage - 1, pageSize = pageSize })" data-i18n="Önceki">Önceki</a>
             </li>
 
             @for (var i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
@@ -366,11 +366,11 @@
             }
 
             <li class="page-item disabled">
-                <span class="page-link">Sayfa @currentPage / @totalPages</span>
+                <span class="page-link"><span data-i18n="Sayfa">Sayfa</span> @currentPage / @totalPages</span>
             </li>
 
             <li class="page-item @(currentPage >= totalPages ? "disabled" : "")">
-                <a class="page-link" href="@Url.Action("Index", "Detay", new { q = Model.Q, durum = Model.Durum, teknoloji = Model.Teknoloji, talepSahibi = Model.TalepSahibi, minDate = Model.MinDate, maxDate = Model.MaxDate, page = currentPage + 1, pageSize = pageSize })">Sonraki</a>
+                <a class="page-link" href="@Url.Action("Index", "Detay", new { q = Model.Q, durum = Model.Durum, teknoloji = Model.Teknoloji, talepSahibi = Model.TalepSahibi, minDate = Model.MinDate, maxDate = Model.MaxDate, page = currentPage + 1, pageSize = pageSize })" data-i18n="Sonraki">Sonraki</a>
             </li>
         </ul>
     </nav>
@@ -378,7 +378,7 @@
     @if (Model.SelectedMusteriId.HasValue && Model.SelectedMusteriId.Value > 0)
     {
         <div id="selectedInfo" class="alert selected-info mt-4">
-            <strong>Seçilen Müşteri:</strong> @Model.SelectedMusteriAdi
+            <strong data-i18n="Seçilen Müşteri:">Seçilen Müşteri:</strong> @Model.SelectedMusteriAdi
         </div>
 
         @await Html.PartialAsync("_DetayListesi", Model.SelectedMusteriDetaylar, detayViewData)
@@ -391,7 +391,7 @@
         <div class="modal-content">
 
             <div class="modal-header bg-warning text-white">
-                <h5 class="modal-title">✏️ Müşteri Düzenle</h5>
+                <h5 class="modal-title">✏️ <span data-i18n="Müşteri Düzenle">Müşteri Düzenle</span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
 
@@ -403,35 +403,35 @@
                     <div class="row g-3">
 
                         <div class="col-md-6">
-                            <label class="form-label">Firma Adı *</label>
+                            <label class="form-label" data-i18n="Firma Adı *">Firma Adı *</label>
                             <input type="text" id="editFirma" name="Firma" class="form-control" required />
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Firma Yetkilisi</label>
+                            <label class="form-label" data-i18n="Firma Yetkilisi">Firma Yetkilisi</label>
                             <input type="text" id="editFirmaYetkilisi" name="FirmaYetkilisi" class="form-control" />
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Telefon</label>
+                            <label class="form-label" data-i18n="Telefon">Telefon</label>
                             <input type="text" id="editTelefon" name="Telefon" class="form-control" />
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Site URL</label>
+                            <label class="form-label" data-i18n="Site URL">Site URL</label>
                             <input type="text" id="editSiteUrl" name="SiteUrl" class="form-control" />
                         </div>
 
 
                         <div class="col-md-6">
-                            <label class="form-label">Teknoloji</label>
+                            <label class="form-label" data-i18n="Teknoloji">Teknoloji</label>
                             <input type="text" id="editTeknoloji" name="Teknoloji" class="form-control" />
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Durum *</label>
+                            <label class="form-label" data-i18n="Durum *">Durum *</label>
                             <select id="editDurum" name="Durum" class="form-select" required>
-                                <option value="">Seçiniz</option>
+                                <option value="" data-i18n="Seçiniz">Seçiniz</option>
                                 @foreach (var durumSecenegi in durumlar)
                                 {
                                     <option value="@durumSecenegi">@durumSecenegi</option>
@@ -440,12 +440,12 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Talep Sahibi</label>
+                            <label class="form-label" data-i18n="Talep Sahibi">Talep Sahibi</label>
                             <input type="text" id="editTalepSahibi" name="TalepSahibi" class="form-control" />
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label">Açıklama</label>
+                            <label class="form-label" data-i18n="Açıklama">Açıklama</label>
                             <textarea id="editAciklama" name="Aciklama" class="form-control" rows="4"></textarea>
                         </div>
 
@@ -454,8 +454,8 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-warning">Güncelle</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="İptal">İptal</button>
+                    <button type="submit" class="btn btn-warning" data-i18n="Güncelle">Güncelle</button>
                 </div>
 
             </form>

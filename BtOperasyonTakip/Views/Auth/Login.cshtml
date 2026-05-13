@@ -9,6 +9,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="~/css/ui-localization.css" asp-append-version="true" />
 
 <style>
     body {
@@ -184,25 +185,32 @@
 </head>
 <body>
 
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1055;" data-no-translate>
+    <div class="language-switcher" style="background: rgba(15, 23, 42, 0.28); border-color: rgba(255,255,255,0.2);">
+        <button type="button" class="language-switcher__button" data-language-switch data-language-value="tr" aria-pressed="true">TR</button>
+        <button type="button" class="language-switcher__button" data-language-switch data-language-value="en" aria-pressed="false">EN</button>
+    </div>
+</div>
+
 <div class="login-shell">
     <div class="login-hero">
         <div>
-            <div class="hero-badge">⚙️ Operasyon Takip</div>
-            <h1>Operasyon süreçlerini tek merkezden yönetin.</h1>
-            <p>Müşteri, ticket, hata, toplantı notları ve iş takip akışlarını daha düzenli ve hızlı şekilde yönetin.</p>
+            <div class="hero-badge">⚙️ <span data-i18n="Operasyon Takip">Operasyon Takip</span></div>
+            <h1 data-i18n="Operasyon süreçlerini tek merkezden yönetin.">Operasyon süreçlerini tek merkezden yönetin.</h1>
+            <p data-i18n="Müşteri, ticket, hata, toplantı notları ve iş takip akışlarını daha düzenli ve hızlı şekilde yönetin.">Müşteri, ticket, hata, toplantı notları ve iş takip akışlarını daha düzenli ve hızlı şekilde yönetin.</p>
             <div class="hero-badges">
-                <div class="hero-badge">📋 Müşteri Yönetimi</div>
-                <div class="hero-badge">🎫 Ticket Takibi</div>
-                <div class="hero-badge">🗒️ Toplantı Notları</div>
+                <div class="hero-badge">📋 <span data-i18n="Müşteri Yönetimi">Müşteri Yönetimi</span></div>
+                <div class="hero-badge">🎫 <span data-i18n="Ticket Takibi">Ticket Takibi</span></div>
+                <div class="hero-badge">🗒️ <span data-i18n="Toplantı Notları">Toplantı Notları</span></div>
             </div>
         </div>
-        <div class="small" style="color: rgba(255,255,255,0.72);">Güvenli giriş ile rol bazlı ekranlara yönlendirme yapılır.</div>
+        <div class="small" style="color: rgba(255,255,255,0.72);" data-i18n="Güvenli giriş ile rol bazlı ekranlara yönlendirme yapılır.">Güvenli giriş ile rol bazlı ekranlara yönlendirme yapılır.</div>
     </div>
 
     <div class="login-card text-center">
-        <div class="login-topline">🔐 Güvenli Giriş</div>
-        <h3 class="mb-2">Hoş geldiniz</h3>
-        <p class="text-muted">Devam etmek için hesabınızla giriş yapın</p>
+        <div class="login-topline">🔐 <span data-i18n="Güvenli Giriş">Güvenli Giriş</span></div>
+        <h3 class="mb-2" data-i18n="Hoş geldiniz">Hoş geldiniz</h3>
+        <p class="text-muted" data-i18n="Devam etmek için hesabınızla giriş yapın">Devam etmek için hesabınızla giriş yapın</p>
 
         @if (ViewBag.Error != null)
         {
@@ -211,29 +219,30 @@
 
         <form method="post">
             <div class="mb-3 text-start">
-                <label class="form-label">Kullanıcı Adı</label>
+                <label class="form-label" data-i18n="Kullanıcı Adı">Kullanıcı Adı</label>
                 <input type="text" name="username" class="form-control" placeholder="Kullanıcı adınızı girin" required />
             </div>
             <div class="mb-3 text-start">
-                <label class="form-label">Şifre</label>
+                <label class="form-label" data-i18n="Şifre">Şifre</label>
                 <input type="password" name="password" class="form-control" placeholder="Şifrenizi girin" required />
             </div>
 
             <div class="form-check text-start mb-3">
                 <input type="checkbox" name="rememberMe" class="form-check-input" id="remember">
-                <label class="form-check-label" for="remember">Beni Hatırla</label>
+                <label class="form-check-label" for="remember" data-i18n="Beni Hatırla">Beni Hatırla</label>
             </div>
 
-            <button type="submit" class="btn btn-login w-100 text-white py-2">Giriş Yap</button>
+            <button type="submit" class="btn btn-login w-100 text-white py-2" data-i18n="Giriş Yap">Giriş Yap</button>
         </form>
 
         <div class="mt-3">
             @if (User.IsInRole("Admin"))
             {
-                <a asp-action="Register" class="text-decoration-none text-primary fw-semibold">Hesabın yok mu? Kayıt ol</a>
+                <a asp-action="Register" class="text-decoration-none text-primary fw-semibold" data-i18n="Hesabın yok mu? Kayıt ol">Hesabın yok mu? Kayıt ol</a>
             }
         </div>
     </div>
 </div>
+<script src="~/js/ui-localization.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -261,20 +261,28 @@ public sealed class MusteriController : Controller
     [HttpGet("/Musteri/ExportExcelByMonth")]
     public async Task<IActionResult> ExportExcelByMonth(string? month)
     {
-        if (string.IsNullOrWhiteSpace(month))
-            return BadRequest("Ay bilgisi zorunlu. Örn: 2026-02");
+        var isAllMonths = string.IsNullOrWhiteSpace(month)
+            || string.Equals(month?.Trim(), "all", StringComparison.OrdinalIgnoreCase);
 
-        if (!DateTime.TryParseExact(month.Trim(), "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var monthStart))
-            return BadRequest("Geçersiz ay formatı. Örn: 2026-02");
+        IQueryable<Musteri> query = _context.Musteriler.AsNoTracking();
 
-        var start = new DateTime(monthStart.Year, monthStart.Month, 1, 0, 0, 0);
-        var end = start.AddMonths(1);
+        if (!isAllMonths)
+        {
+            if (string.IsNullOrWhiteSpace(month))
+                return BadRequest("Ay bilgisi zorunlu. Örn: 2026-02");
 
-        var rows = await _context.Musteriler
-            .AsNoTracking()
-            .Where(x =>
+            if (!DateTime.TryParseExact(month.Trim(), "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var monthStart))
+                return BadRequest("Geçersiz ay formatı. Örn: 2026-02");
+
+            var start = new DateTime(monthStart.Year, monthStart.Month, 1, 0, 0, 0);
+            var end = start.AddMonths(1);
+
+            query = query.Where(x =>
                 (x.KayitTarihi != null && x.KayitTarihi.Value >= start && x.KayitTarihi.Value < end)
-                || (x.DurumDegisiklikTarihi != null && x.DurumDegisiklikTarihi.Value >= start && x.DurumDegisiklikTarihi.Value < end))
+                || (x.DurumDegisiklikTarihi != null && x.DurumDegisiklikTarihi.Value >= start && x.DurumDegisiklikTarihi.Value < end));
+        }
+
+        var rows = await query
             .OrderByDescending(x => x.KayitTarihi)
             .ThenByDescending(x => x.MusteriID)
             .Select(x => new
@@ -433,7 +441,7 @@ public sealed class MusteriController : Controller
         return File(
             ms.ToArray(),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"Musteriler_{month}.xlsx");
+            isAllMonths ? "Musteriler_TumAylar.xlsx" : $"Musteriler_{month}.xlsx");
     }
     
     
@@ -443,8 +451,9 @@ public async Task<IActionResult> ExportNewCustomersExcelByMonth(string? month)
     DateTime monthStart;
     if (string.IsNullOrWhiteSpace(month))
     {
-        // Ay seçilmezse her zaman bu (güncel) ayı kullan
-        monthStart = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        // Ay seçilmezse her zaman bir önceki ayı kullan
+        var previousMonth = DateTime.Now.AddMonths(-1);
+        monthStart = new DateTime(previousMonth.Year, previousMonth.Month, 1);
     }
     else if (!DateTime.TryParseExact(month.Trim(), "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out monthStart))
     {

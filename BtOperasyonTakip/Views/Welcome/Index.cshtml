@@ -3,6 +3,7 @@
 }
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="~/css/ui-localization.css" asp-append-version="true" />
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <style>
@@ -78,6 +79,13 @@
 
 <div class="container text-center">
 
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1055;" data-no-translate>
+        <div class="language-switcher" style="background: rgba(15, 23, 42, 0.08); border-color: rgba(15,23,42,0.12);">
+            <button type="button" class="language-switcher__button active" data-language-switch data-language-value="tr" aria-pressed="true" style="color:#0f172a;">TR</button>
+            <button type="button" class="language-switcher__button" data-language-switch data-language-value="en" aria-pressed="false" style="color:#0f172a;">EN</button>
+        </div>
+    </div>
+
     <div id="scene1" class="scene">
         <div class="card p-4 shadow-lg border-0">
             <h3 class="typing text-primary fw-bold mb-3" id="loaderText"></h3>
@@ -87,15 +95,15 @@
 
     <div id="scene2" class="scene">
         <div class="card shadow-lg border-0 p-5">
-            <h2 class="text-primary fw-bold mb-3">👋 Hoş geldin, @User.Identity?.Name!</h2>
-            <p class="lead text-muted">BT Operasyon Takip sistemine başarıyla giriş yaptın.</p>
+            <h2 class="text-primary fw-bold mb-3">👋 <span id="welcomeUserText" data-user-name="@User.Identity?.Name">Hoş geldin, @User.Identity?.Name!</span></h2>
+            <p class="lead text-muted" data-i18n="BT Operasyon Takip sistemine başarıyla giriş yaptın.">BT Operasyon Takip sistemine başarıyla giriş yaptın.</p>
 
             <div class="mt-4">
                 <button id="enterBtn" class="btn btn-primary btn-lg">
-                    🚀 Panele Giriş Yap
+                    🚀 <span data-i18n="Panele Giriş Yap">Panele Giriş Yap</span>
                 </button>
                 <a asp-controller="Auth" asp-action="Logout" class="btn btn-outline-danger btn-lg ms-2">
-                    🔒 Çıkış Yap
+                    🔒 <span data-i18n="Çıkış Yap">Çıkış Yap</span>
                 </a>
             </div>
         </div>
@@ -103,10 +111,10 @@
 
     <div id="scene3" class="scene">
         <div class="card shadow-lg border-0 p-5 bg-light">
-            <h2 class="text-primary mb-3">Hoşgeldiniz</h2>
+            <h2 class="text-primary mb-3" id="welcomeSceneTitle" data-i18n="Hoşgeldiniz">Hoşgeldiniz</h2>
             <div id="clock" class="clock mb-2"></div>
             <p class="lead text-success fw-semibold" id="motivasyonMetni"></p>
-            <p class="text-muted">Yönlendiriliyor...</p>
+            <p class="text-muted" data-i18n="Yönlendiriliyor...">Yönlendiriliyor...</p>
         </div>
     </div>
 </div>
@@ -162,15 +170,45 @@
         const clock = document.getElementById("clock");
         setInterval(() => {
             const now = new Date();
-            clock.textContent = now.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+            const culture = window.UiLocalization?.getLanguage?.() === 'en' ? 'en-US' : 'tr-TR';
+            clock.textContent = now.toLocaleTimeString(culture, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
         }, 1000);
     }
 
-    function showMotivasyon() {
-        const mesajlar = [
-            "Hoşgeldiniz",
-       
-        ];
-        document.getElementById("motivasyonMetni").textContent = mesajlar[Math.floor(Math.random() * mesajlar.length)];
+    function syncWelcomeTexts() {
+        const language = window.UiLocalization?.getLanguage?.() ?? 'tr';
+        const welcomeUserText = document.getElementById('welcomeUserText');
+        const welcomeSceneTitle = document.getElementById('welcomeSceneTitle');
+
+        if (welcomeUserText) {
+            const userName = welcomeUserText.dataset.userName || '';
+            welcomeUserText.textContent = language === 'en'
+                ? `Welcome, ${userName}!`
+                : `Hoş geldin, ${userName}!`;
+        }
+
+        if (welcomeSceneTitle) {
+            welcomeSceneTitle.textContent = language === 'en' ? 'Welcome!' : 'Hoşgeldiniz!';
+        }
     }
+
+    function showMotivasyon() {
+        const language = window.UiLocalization?.getLanguage?.() ?? 'tr';
+        document.getElementById("motivasyonMetni").textContent = language === 'en' ? 'Welcome!' : 'Hoşgeldiniz!';
+    }
+
+    document.addEventListener('ui-language-changed', () => {
+        syncWelcomeTexts();
+        showMotivasyon();
+
+        const clock = document.getElementById("clock");
+        if (clock) {
+            const now = new Date();
+            const culture = window.UiLocalization?.getLanguage?.() === 'en' ? 'en-US' : 'tr-TR';
+            clock.textContent = now.toLocaleTimeString(culture, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', syncWelcomeTexts);
 </script>
+<script src="~/js/ui-localization.js" asp-append-version="true"></script>

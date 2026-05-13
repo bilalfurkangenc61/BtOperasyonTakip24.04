@@ -141,31 +141,31 @@
 
     <div class="toplanti-hero mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
         <div>
-            <h2 class="mb-1">🗒️ Müşteri Toplantı Notları</h2>
-            <div class="hero-subtext">Toplantı kayıtlarını oluşturun, inceleyin ve dışa aktarın.</div>
+            <h2 class="mb-1"><span aria-hidden="true">🗒️</span> <span data-i18n="Müşteri Toplantı Notları">Müşteri Toplantı Notları</span></h2>
+            <div class="hero-subtext" data-i18n="Toplantı kayıtlarını oluşturun, inceleyin ve dışa aktarın.">Toplantı kayıtlarını oluşturun, inceleyin ve dışa aktarın.</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <span class="toplanti-chip">Toplam Kayıt: @(Model?.Count() ?? 0)</span>
-            <span class="toplanti-chip">Tür Seçenekleri: @turler.Count()</span>
+            <span class="toplanti-chip"><span data-i18n="Toplam Kayıt">Toplam Kayıt</span>: @(Model?.Count() ?? 0)</span>
+            <span class="toplanti-chip"><span data-i18n="Tür Seçenekleri">Tür Seçenekleri</span>: @turler.Count()</span>
         </div>
     </div>
 
     <div class="card toplanti-card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-                <div class="fw-semibold text-primary">Arama</div>
-                <div class="small text-muted">Müşteri, ekleyen veya not içeriğine göre filtreleyin.</div>
+                <div class="fw-semibold text-primary" data-i18n="Arama">Arama</div>
+                <div class="small text-muted" data-i18n="Müşteri, ekleyen veya not içeriğine göre filtreleyin.">Müşteri, ekleyen veya not içeriğine göre filtreleyin.</div>
             </div>
         </div>
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
                 <div class="col-md-10">
-                    <label class="form-label">Ara (Müşteri / Ekleyen / Not)</label>
+                    <label class="form-label" data-i18n="Ara (Müşteri / Ekleyen / Not)">Ara (Müşteri / Ekleyen / Not)</label>
                     <input name="q" value="@ViewBag.Q" class="form-control" placeholder="Örn: ABC toplantı..." />
                 </div>
                 <div class="col-md-2 d-flex align-items-end gap-2">
-                    <button type="submit" class="btn btn-primary w-100">🔎 Ara</button>
-                    <a class="btn btn-outline-secondary w-100" href="@Url.Action("Index", "ToplantiNotlari")">Temizle</a>
+                    <button type="submit" class="btn btn-primary w-100"><span aria-hidden="true">🔎</span> <span data-i18n="Ara">Ara</span></button>
+                    <a class="btn btn-outline-secondary w-100" href="@Url.Action("Index", "ToplantiNotlari")" data-i18n="Temizle">Temizle</a>
                 </div>
             </form>
         </div>
@@ -174,40 +174,40 @@
  <div class="card toplanti-card create-card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-                <div class="fw-semibold text-primary">Yeni Toplantı Kaydı</div>
-                <div class="small text-muted">Toplantı bilgilerini ve konu/hedef tarihlerini tek formdan kaydedin.</div>
+                <div class="fw-semibold text-primary" data-i18n="Yeni Toplantı Kaydı">Yeni Toplantı Kaydı</div>
+                <div class="small text-muted" data-i18n="Toplantı bilgilerini ve konu/hedef tarihlerini tek formdan kaydedin.">Toplantı bilgilerini ve konu/hedef tarihlerini tek formdan kaydedin.</div>
             </div>
         </div>
         <div class="card-body">
     <form asp-action="Create" method="post" class="row g-3" id="createForm">
         <div class="col-md-4">
-            <label class="form-label">Toplantı Başlığı *</label>
+            <label class="form-label" data-i18n="Toplantı Başlığı *">Toplantı Başlığı *</label>
             <input name="ToplantiBasligi" class="form-control" required />
         </div>
         <div class="col-md-4">
-            <label class="form-label">Konum *</label>
+            <label class="form-label" data-i18n="Konum *">Konum *</label>
             <input name="Konum" class="form-control" required />
         </div>
         <div class="col-md-2">
-            <label class="form-label">Tarih *</label>
+            <label class="form-label" data-i18n="Tarih *">Tarih *</label>
             <input name="Tarih" type="date" class="form-control" value="2026-02-26" required />
         </div>
         <div class="col-md-2">
-            <label class="form-label">Saat *</label>
+            <label class="form-label" data-i18n="Saat *">Saat *</label>
             <input name="Saat" type="time" class="form-control" value="10:09" required />
         </div>
         <div class="col-md-4">
-            <label class="form-label">Hazırlayan *</label>
+            <label class="form-label" data-i18n="Hazırlayan *">Hazırlayan *</label>
             <input name="Hazirlayan" class="form-control" value="*****" required />
         </div>
         <div class="col-md-4">
-            <label class="form-label">Katılımcılar *</label>
+            <label class="form-label" data-i18n="Katılımcılar *">Katılımcılar *</label>
             <input name="Katilimcilar" class="form-control" required />
         </div>
 		<div class="col-md-4">
-			<label class="form-label">Türü</label>
+          <label class="form-label" data-i18n="Türü">Türü</label>
 			<select name="Tur" class="form-select">
-				<option value="">Seçiniz</option>
+               <option value="" data-i18n="Seçiniz">Seçiniz</option>
 				@foreach (var tur in turler)
 				{
 					<option value="@tur">@tur</option>
@@ -215,9 +215,9 @@
 			</select>
 		</div>
 		<div class="col-md-4">
-			<label class="form-label">Aksiyon Sahibi</label>
+            <label class="form-label" data-i18n="Aksiyon Sahibi">Aksiyon Sahibi</label>
 			<select name="AksiyonSahibi" class="form-select">
-				<option value="">Seçiniz</option>
+               <option value="" data-i18n="Seçiniz">Seçiniz</option>
 				@foreach (var u in aksiyonSahipleri)
 				{
 					var displayName = string.IsNullOrWhiteSpace(u.FullName) ? u.UserName : u.FullName;
@@ -226,13 +226,13 @@
 			</select>
 		</div>
 		<div class="col-12">
-			<label class="form-label">Konular ve Hedef Tarihleri *</label>
+          <label class="form-label" data-i18n="Konular ve Hedef Tarihleri *">Konular ve Hedef Tarihleri *</label>
 			<div class="table-responsive mb-2">
 				<table class="table table-sm align-middle" id="konuTable">
 					<thead>
 						<tr>
-							<th style="width: 60%">Konu</th>
-							<th style="width: 30%">Hedef Tarihi</th>
+                        <th style="width: 60%" data-i18n="Konu">Konu</th>
+                        <th style="width: 30%" data-i18n="Hedef Tarihi">Hedef Tarihi</th>
 							<th style="width: 10%"></th>
 						</tr>
 					</thead>
@@ -245,18 +245,18 @@
 								<input type="date" class="form-control hedef-input" />
 							</td>
 							<td class="text-end">
-								<button type="button" class="btn btn-sm btn-outline-danger remove-konu-row">Sil</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-konu-row" data-i18n="Sil">Sil</button>
 							</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
-			<button type="button" class="btn btn-sm btn-outline-primary" id="addKonuRow">Yeni Konu Ekle</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="addKonuRow" data-i18n="Yeni Konu Ekle">Yeni Konu Ekle</button>
 			<textarea name="Konu" id="KonuHidden" class="d-none"></textarea>
 			<input type="hidden" name="HedefTarihi" id="HedefTarihiHidden" />
 		</div>
         <div class="col-12 d-flex align-items-end">
-            <button type="submit" class="btn btn-success w-100">💾 Kaydet</button>
+            <button type="submit" class="btn btn-success w-100"><span aria-hidden="true">💾</span> <span data-i18n="Kaydet">Kaydet</span></button>
         </div>
     </form>
         </div>
@@ -285,11 +285,11 @@
                 <div id="@collapseId" class="accordion-collapse collapse" aria-labelledby="@headingId">
                     <div class="accordion-body bg-white">
                         <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2 note-toolbar">
-                            <h6 class="text-primary m-0">📝 Toplantı Notu</h6>
+                            <h6 class="text-primary m-0"><span aria-hidden="true">📝</span> <span data-i18n="Toplantı Notu">Toplantı Notu</span></h6>
                             <div class="btn-group">
-                                <button class="btn btn-outline-primary btn-sm edit-btn" data-id="@not.Id">✏️ Düzenle</button>
-                                <button class="btn btn-outline-success btn-sm" onclick="downloadNote(@not.Id, 'pdf')">📄 PDF</button>
-                                <button class="btn btn-outline-info btn-sm" onclick="downloadNote(@not.Id, 'doc')">🧾 Word</button>
+                                <button class="btn btn-outline-primary btn-sm edit-btn" data-id="@not.Id"><span aria-hidden="true">✏️</span> <span data-i18n="Düzenle">Düzenle</span></button>
+                                <button class="btn btn-outline-success btn-sm" onclick="downloadNote(@not.Id, 'pdf')"><span aria-hidden="true">📄</span> PDF</button>
+                                <button class="btn btn-outline-info btn-sm" onclick="downloadNote(@not.Id, 'doc')"><span aria-hidden="true">🧾</span> Word</button>
                             </div>
                         </div>
 
@@ -301,22 +301,22 @@
 
                         <div class="editable-content border rounded p-3" contenteditable="false" data-id="@not.Id">
                             <div>
-                                <div class="mb-2 text-center fw-bold fs-5">İsim</div>
-                                <div class="mb-3 text-center fw-semibold">Toplantı Tutanağı</div>
-                                <div><strong>Toplantı Başlığı:</strong> @not.ToplantiBasligi</div>
-                                <div><strong>Konum:</strong> @not.Konum</div>
-                                <div><strong>Tarih:</strong> @not.Tarih.ToString("dd.MM.yyyy") <strong>Saat:</strong> @not.Saat</div>
-                                <div><strong>Hazırlayan:</strong> @not.Hazirlayan</div>
-                                <div><strong>Katılımcılar:</strong> @not.Katilimcilar</div>
+                                <div class="mb-2 text-center fw-bold fs-5" data-i18n="İsim">İsim</div>
+                                <div class="mb-3 text-center fw-semibold" data-i18n="Toplantı Tutanağı">Toplantı Tutanağı</div>
+                                <div><strong data-i18n="Toplantı Başlığı:">Toplantı Başlığı:</strong> @not.ToplantiBasligi</div>
+                                <div><strong data-i18n="Konum:">Konum:</strong> @not.Konum</div>
+                                <div><strong data-i18n="Tarih:">Tarih:</strong> @not.Tarih.ToString("dd.MM.yyyy") <strong data-i18n="Saat:">Saat:</strong> @not.Saat</div>
+                                <div><strong data-i18n="Hazırlayan:">Hazırlayan:</strong> @not.Hazirlayan</div>
+                                <div><strong data-i18n="Katılımcılar:">Katılımcılar:</strong> @not.Katilimcilar</div>
                                  <div class="table-responsive mt-3">
                                      <table class="table table-sm table-bordered align-middle mb-0 toplanti-detail-table">
                                         <thead class="table-light">
                                             <tr>
                                                 <th style="width: 5%;">#</th>
-                                                <th style="width: 45%;">Konu</th>
-                                                <th style="width: 15%;">Türü</th>
-                                                <th style="width: 20%;">Aksiyon Sahibi</th>
-                                                <th style="width: 15%;">Hedef Tarihi</th>
+                                                 <th style="width: 45%;" data-i18n="Konu">Konu</th>
+                                                 <th style="width: 15%;" data-i18n="Türü">Türü</th>
+                                                 <th style="width: 20%;" data-i18n="Aksiyon Sahibi">Aksiyon Sahibi</th>
+                                                 <th style="width: 15%;" data-i18n="Hedef Tarihi">Hedef Tarihi</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -405,7 +405,7 @@
 						<input type="date" class="form-control hedef-input" />
 					</td>
 					<td class="text-end">
-						<button type="button" class="btn btn-sm btn-outline-danger remove-konu-row">Sil</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-konu-row" data-i18n="Sil">Sil</button>
 					</td>
 				</tr>`;
 			tbody.append(row);
@@ -465,7 +465,8 @@
 		});
 
         function downloadNote(id, format) {
-            window.location.href = `/ToplantiNotlari/Download/${id}?format=${format}`;
+            const language = window.UiLocalization?.getLanguage?.() ?? 'tr';
+            window.location.href = `/ToplantiNotlari/Download/${id}?format=${format}&lang=${language}`;
         }
     </script>
 }

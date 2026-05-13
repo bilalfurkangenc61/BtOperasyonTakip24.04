@@ -129,32 +129,32 @@
     <div class="ticket-hero mb-4">
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
             <div>
-                <h2 class="page-title mb-1">🧾 Ticketlar</h2>
-                <div class="muted-light">Mevcut liste ve süreç adımları tek ekranda izlenir.</div>
+                <h2 class="page-title mb-1"><span aria-hidden="true">🧾</span> <span data-i18n="Ticketlar">Ticketlar</span></h2>
+                <div class="muted-light" data-i18n="Mevcut liste ve süreç adımları tek ekranda izlenir.">Mevcut liste ve süreç adımları tek ekranda izlenir.</div>
             </div>
 
             <div class="d-flex flex-wrap gap-2 align-items-center">
                 <div class="ticket-stat">
-                    <div class="ticket-mini-label">Toplam</div>
+                    <div class="ticket-mini-label" data-i18n="Toplam">Toplam</div>
                     <div class="ticket-mini-value">@toplamTicket</div>
                 </div>
                 <div class="ticket-stat">
-                    <div class="ticket-mini-label">Bekleyen</div>
+                    <div class="ticket-mini-label" data-i18n="Bekleyen">Bekleyen</div>
                     <div class="ticket-mini-value">@acikSayisi</div>
                 </div>
                 <div class="ticket-stat">
-                    <div class="ticket-mini-label">Kaydedilen</div>
+                    <div class="ticket-mini-label" data-i18n="Kaydedilen">Kaydedilen</div>
                     <div class="ticket-mini-value">@tamamlananSayisi</div>
                 </div>
                 <div class="ticket-stat">
-                    <div class="ticket-mini-label">Reddedilen</div>
+                    <div class="ticket-mini-label" data-i18n="Reddedilen">Reddedilen</div>
                     <div class="ticket-mini-value">@reddedilenSayisi</div>
                 </div>
 
                 @if (User.IsInRole("Saha") || User.IsInRole("KurumsalSaha"))
                 {
                     <a asp-action="Create" class="btn btn-light fw-semibold ms-lg-2">
-                        <i class="bi bi-plus-circle"></i> Yeni Ticket
+                        <i class="bi bi-plus-circle"></i> <span data-i18n="Yeni Ticket">Yeni Ticket</span>
                     </a>
                 }
             </div>
@@ -164,23 +164,23 @@
     <div class="card ticket-section ticket-filter-card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-                <div class="fw-semibold">Filtreler</div>
-                <div class="text-muted small">Firma, durum veya talep eden kişiye göre hızlı filtreleme yapın.</div>
+                <div class="fw-semibold" data-i18n="Filtreler">Filtreler</div>
+                <div class="text-muted small" data-i18n="Firma, durum veya talep eden kişiye göre hızlı filtreleme yapın.">Firma, durum veya talep eden kişiye göre hızlı filtreleme yapın.</div>
             </div>
         </div>
         <div class="card-body">
             <form asp-action="Index" method="get" class="row g-3 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label small text-muted mb-1">Arama</label>
+                    <label class="form-label small text-muted mb-1" data-i18n="Arama">Arama</label>
                     <input type="text" name="searchFirma" class="form-control ticket-search-input"
                            placeholder="🔍 Firma adı, yazılımcı adı ile ara..."
                            value="@ViewBag.SearchFirma" />
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small text-muted mb-1">Durum</label>
+                    <label class="form-label small text-muted mb-1" data-i18n="Durum">Durum</label>
                     <input type="text" id="ticketDurumSearch" class="form-control mb-2" placeholder="Durum ara..." autocomplete="off" />
                     <select id="ticketDurumSelect" name="durum" class="form-select">
-                        <option value="">Duruma göre filtrele</option>
+                        <option value="" data-i18n="Duruma göre filtrele">Duruma göre filtrele</option>
                         @foreach (var durum in (IEnumerable<string>)ViewBag.Durumlar ?? new List<string>())
                         {
                             var isSelected = ((ViewBag.SelectedDurum ?? "").ToString().Trim().ToLowerInvariant() == (durum ?? "").Trim().ToLowerInvariant());
@@ -189,10 +189,10 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small text-muted mb-1">Talep Eden</label>
+                    <label class="form-label small text-muted mb-1" data-i18n="Talep Eden">Talep Eden</label>
                     <input type="text" id="ticketTalepEdenSearch" class="form-control mb-2" placeholder="Talep eden ara..." autocomplete="off" />
                     <select id="ticketTalepEdenSelect" name="talepEden" class="form-select">
-                        <option value="">Talep edene göre filtrele</option>
+                        <option value="" data-i18n="Talep edene göre filtrele">Talep edene göre filtrele</option>
                         @foreach (var talepEden in (IEnumerable<string>)ViewBag.TalepEdenler ?? new List<string>())
                         {
                             var isSelected = ((ViewBag.SelectedTalepEden ?? "").ToString().Trim().ToLowerInvariant() == (talepEden ?? "").Trim().ToLowerInvariant());
@@ -202,12 +202,12 @@
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-search"></i> Ara
+                        <i class="bi bi-search"></i> <span data-i18n="Ara">Ara</span>
                     </button>
                     @if (!string.IsNullOrWhiteSpace(ViewBag.SearchFirma) || !string.IsNullOrWhiteSpace(ViewBag.SelectedDurum) || !string.IsNullOrWhiteSpace(ViewBag.SelectedTalepEden))
                     {
                         <a asp-action="Index" class="btn btn-secondary w-100 mt-2">
-                            <i class="bi bi-arrow-counterclockwise"></i> Temizle
+                            <i class="bi bi-arrow-counterclockwise"></i> <span data-i18n="Temizle">Temizle</span>
                         </a>
                     }
                 </div>
@@ -220,7 +220,7 @@
     @if (!Model.Any())
     {
         <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> Henüz ticket bulunmamaktadır.
+            <i class="bi bi-info-circle"></i> <span data-i18n="Henüz ticket bulunmamaktadır.">Henüz ticket bulunmamaktadır.</span>
         </div>
     }
     else
@@ -228,8 +228,8 @@
         <div class="card ticket-section ticket-table-card">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                    <div class="fw-semibold">Ticket Listesi</div>
-                    <div class="text-muted small">Detay, durum ve süreç bilgileri tek tabloda gösterilir.</div>
+                    <div class="fw-semibold" data-i18n="Ticket Listesi">Ticket Listesi</div>
+                    <div class="text-muted small" data-i18n="Detay, durum ve süreç bilgileri tek tabloda gösterilir.">Detay, durum ve süreç bilgileri tek tabloda gösterilir.</div>
                 </div>
             </div>
             <div class="table-responsive">
@@ -237,17 +237,17 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
-                        <th>Firma</th>
-                        <th>Müşteri Web Sitesi</th>
-                        <th>Yazılımcı</th>
-                        <th>Atanan Operasyon</th>
-                        <th>📧 Mail</th>
-                        <th>İrtibat</th>
-                        <th>Teknoloji</th>
-                        <th>Uyum Kararı Veren</th>
-                        <th>Oluşturan</th>
-                        <th>Tarih</th>
-                        <th>İşlem</th>
+                        <th data-i18n="Firma">Firma</th>
+                        <th data-i18n="Müşteri Web Sitesi">Müşteri Web Sitesi</th>
+                        <th data-i18n="Yazılımcı">Yazılımcı</th>
+                        <th data-i18n="Atanan Operasyon">Atanan Operasyon</th>
+                        <th><span aria-hidden="true">📧</span> <span data-i18n="Mail">Mail</span></th>
+                        <th data-i18n="İrtibat">İrtibat</th>
+                        <th data-i18n="Teknoloji">Teknoloji</th>
+                        <th data-i18n="Uyum Kararı Veren">Uyum Kararı Veren</th>
+                        <th data-i18n="Oluşturan">Oluşturan</th>
+                        <th data-i18n="Tarih">Tarih</th>
+                        <th data-i18n="İşlemler">İşlem</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -296,7 +296,7 @@
                                 }
                                 else
                                 {
-                                    <span class="badge bg-light text-dark">Seçilmedi</span>
+                                    <span class="badge bg-light text-dark" data-i18n="Seçilmedi">Seçilmedi</span>
                                 }
                             </td>
                             <td>@ticket.UyumOnaylayanKullaniciAdi</td>
@@ -326,7 +326,7 @@
                                         data-odeme-yontemleri="@(ticket.OdemeYontemleri ?? "-")"
                                          data-websitesi-tipi="@(ticket.WebSitesiTipi ?? "-")"
                                          data-atanan-id="@ticket.AtananOperasyonUserId">
-                                    <i class="bi bi-eye"></i>
+                                     <i class="bi bi-eye"></i><span class="visually-hidden" data-i18n="Ticket Detayı">Ticket Detayı</span>
                                 </button>
                             </td>
                         </tr>
@@ -342,55 +342,55 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">📋 Ticket Detayı #<span id="modalTicketId"></span></h5>
+                <h5 class="modal-title"><span aria-hidden="true">📋</span> <span data-i18n="Ticket Detayı">Ticket Detayı</span> #<span id="modalTicketId"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <div><strong>Durum:</strong> <span id="modalStatus"></span></div>
-                    <div><strong>Oluşturan:</strong> <span id="modalOlusturan"></span></div>
-                    <div><strong>Oluşturma Tarihi:</strong> <span id="modalOlusturmaTarih"></span></div>
+                    <div><strong data-i18n="Durum:">Durum:</strong> <span id="modalStatus"></span></div>
+                    <div><strong data-i18n="Oluşturan:">Oluşturan:</strong> <span id="modalOlusturan"></span></div>
+                    <div><strong data-i18n="Oluşturma Tarihi:">Oluşturma Tarihi:</strong> <span id="modalOlusturmaTarih"></span></div>
                 </div>
                 <hr />
                 <div class="row g-3">
                     <div class="col-12">
-                        <label class="fw-bold">Müşteri Seçimleri:</label>
+                        <label class="fw-bold" data-i18n="Müşteri Seçimleri:">Müşteri Seçimleri:</label>
                         <div class="bg-light p-2 rounded">
-                            <div><strong>Ödeme Türleri:</strong> <span id="modalOdemeTurleri"></span></div>
-                            <div><strong>Ödeme Yöntemleri:</strong> <span id="modalOdemeYontemleri"></span></div>
-                            <div><strong>Web Sitesi Tipi:</strong> <span id="modalWebSitesiTipi"></span></div>
+                            <div><strong data-i18n="Ödeme Türleri:">Ödeme Türleri:</strong> <span id="modalOdemeTurleri"></span></div>
+                            <div><strong data-i18n="Ödeme Yöntemleri:">Ödeme Yöntemleri:</strong> <span id="modalOdemeYontemleri"></span></div>
+                            <div><strong data-i18n="Web Sitesi Tipi:">Web Sitesi Tipi:</strong> <span id="modalWebSitesiTipi"></span></div>
                         </div>
                     </div>
                     <div class="col-12">
-                        <label class="fw-bold">1) Operasyon 1:</label>
+                        <label class="fw-bold" data-i18n="1) Operasyon 1:">1) Operasyon 1:</label>
                         <div class="bg-light p-2 rounded">
-                            <div><strong>Karar:</strong> <span id="modalOp1Karar"></span></div>
-                            <div><strong>Karar Veren:</strong> <span id="modalOp1KararVeren"></span></div>
-                            <div><strong>Tarih:</strong> <span id="modalOp1Tarih"></span></div>
-                            <div><strong>Not:</strong> <span id="modalOp1Not"></span></div>
+                            <div><strong data-i18n="Karar:">Karar:</strong> <span id="modalOp1Karar"></span></div>
+                            <div><strong data-i18n="Karar Veren:">Karar Veren:</strong> <span id="modalOp1KararVeren"></span></div>
+                            <div><strong data-i18n="Tarih:">Tarih:</strong> <span id="modalOp1Tarih"></span></div>
+                            <div><strong data-i18n="Not:">Not:</strong> <span id="modalOp1Not"></span></div>
                         </div>
                     </div>
                     <div class="col-12">
-                        <label class="fw-bold">2) Uyum:</label>
+                        <label class="fw-bold" data-i18n="2) Uyum:">2) Uyum:</label>
                         <div class="bg-light p-2 rounded">
-                            <div><strong>Karar Veren:</strong> <span id="modalUyumOnaylayan"></span></div>
-                            <div><strong>Tarih:</strong> <span id="modalUyumTarih"></span></div>
-                            <div><strong>Açıklama:</strong> <span id="modalUyumAciklama"></span></div>
+                            <div><strong data-i18n="Karar Veren:">Karar Veren:</strong> <span id="modalUyumOnaylayan"></span></div>
+                            <div><strong data-i18n="Tarih:">Tarih:</strong> <span id="modalUyumTarih"></span></div>
+                            <div><strong data-i18n="Açıklama:">Açıklama:</strong> <span id="modalUyumAciklama"></span></div>
                         </div>
                     </div>
                     <div class="col-12">
-                        <label class="fw-bold">3) Operasyon 2:</label>
+                        <label class="fw-bold" data-i18n="3) Operasyon 2:">3) Operasyon 2:</label>
                         <div class="bg-light p-2 rounded">
-                            <div><strong>Mail Gönderildi Mi:</strong> <span id="modalOp2Mail"></span></div>
-                            <div><strong>Tarih:</strong> <span id="modalOp2Tarih"></span></div>
-                            <div><strong>Not:</strong> <span id="modalOp2Not"></span></div>
+                            <div><strong data-i18n="Mail Gönderildi Mi:">Mail Gönderildi Mi:</strong> <span id="modalOp2Mail"></span></div>
+                            <div><strong data-i18n="Tarih:">Tarih:</strong> <span id="modalOp2Tarih"></span></div>
+                            <div><strong data-i18n="Not:">Not:</strong> <span id="modalOp2Not"></span></div>
                         </div>
                     </div>
                     <div class="col-12">
-                        <label class="fw-bold">4) Saha:</label>
+                        <label class="fw-bold" data-i18n="4) Saha:">4) Saha:</label>
                         <div class="bg-light p-2 rounded">
-                            <div><strong>Canlı Açıldı Tarihi:</strong> <span id="modalSahaTarih"></span></div>
-                            <div><strong>Not:</strong> <span id="modalSahaNot"></span></div>
+                            <div><strong data-i18n="Canlı Açıldı Tarihi:">Canlı Açıldı Tarihi:</strong> <span id="modalSahaTarih"></span></div>
+                            <div><strong data-i18n="Not:">Not:</strong> <span id="modalSahaNot"></span></div>
                         </div>
                     </div>
                     @if (User.IsInRole("Admin"))
@@ -400,11 +400,11 @@
                         <hr />
                         <div class="row g-2">
                             <div class="col-12">
-                                <label class="fw-bold">Kişi / Durum Ata (Admin)</label>
+                                <label class="fw-bold" data-i18n="Kişi / Durum Ata (Admin)">Kişi / Durum Ata (Admin)</label>
                             </div>
                             <div class="col-md-4">
                                 <select id="adminOperasyonUserSelect" class="form-select form-select-sm">
-                                    <option value="">Operasyon seçiniz</option>
+                                    <option value="" data-i18n="Operasyon seçiniz">Operasyon seçiniz</option>
                                     @foreach (var op in operasyonUsers)
                                     {
                                         <option value="@op.Id">@op.Name</option>
@@ -413,7 +413,7 @@
                             </div>
                             <div class="col-md-3">
                                 <select id="adminDurumSelect" class="form-select form-select-sm">
-                                    <option value="">Durum seçiniz</option>
+                                    <option value="" data-i18n="Durum seçiniz">Durum seçiniz</option>
                                     @foreach (var durum in durumlar)
                                     {
                                         <option value="@durum">@durum</option>
@@ -424,31 +424,31 @@
                                 <input type="text" id="adminOperasyonNeden" class="form-control form-control-sm" placeholder="Değişiklik nedeni" />
                             </div>
                             <div class="col-md-2 d-grid">
-                                <button type="button" class="btn btn-sm btn-warning" id="btnAdminChangeAssignment">Güncelle</button>
+                                <button type="button" class="btn btn-sm btn-warning" id="btnAdminChangeAssignment" data-i18n="Güncelle">Güncelle</button>
                             </div>
                         </div>
                     }
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="Kapat">Kapat</button>
                 @if (User.IsInRole("Operasyon"))
                 {
-                    <button type="button" class="btn btn-success d-none" id="btnOp1Onay">Operasyon 1 - Entegre Olur</button>
-                    <button type="button" class="btn btn-danger d-none" id="btnOp1Red">Operasyon 1 - Entegre Olmaz</button>
+                    <button type="button" class="btn btn-success d-none" id="btnOp1Onay" data-i18n="Operasyon 1 - Entegre Olur">Operasyon 1 - Entegre Olur</button>
+                    <button type="button" class="btn btn-danger d-none" id="btnOp1Red" data-i18n="Operasyon 1 - Entegre Olmaz">Operasyon 1 - Entegre Olmaz</button>
 
-                    <button type="button" class="btn btn-success d-none" id="btnOp2MailEvet">Operasyon 2 - Mail Gönderildi</button>
-                    <button type="button" class="btn btn-warning d-none" id="btnOp2MailHayir">Operasyon 2 - Mail Gönderilmedi</button>
+                    <button type="button" class="btn btn-success d-none" id="btnOp2MailEvet" data-i18n="Operasyon 2 - Mail Gönderildi">Operasyon 2 - Mail Gönderildi</button>
+                    <button type="button" class="btn btn-warning d-none" id="btnOp2MailHayir" data-i18n="Operasyon 2 - Mail Gönderilmedi">Operasyon 2 - Mail Gönderilmedi</button>
                 }
                 @if (User.IsInRole("Operasyon") || User.IsInRole("Admin"))
                 {
-                    <button type="button" class="btn btn-success d-none" id="btnEntegrasyonTamamlandi">Entegrasyon Tamamlandı</button>
+                    <button type="button" class="btn btn-success d-none" id="btnEntegrasyonTamamlandi" data-i18n="Entegrasyon Tamamlandı">Entegrasyon Tamamlandı</button>
                 }
                 @if (User.IsInRole("Saha") || User.IsInRole("KurumsalSaha") || User.IsInRole("Admin"))
                 {
-                    <button type="button" class="btn btn-success d-none" id="btnSahaCanliOnay">Canlı Açılışı Onayla</button>
-                    <button type="button" class="btn btn-danger d-none" id="btnSahaCanliIptal">İptal Et</button>
-                    <button type="button" class="btn btn-primary d-none" id="btnSahaEksikEvrakTamamlandi">Eksik Evrakı Ekledim</button>
+                    <button type="button" class="btn btn-success d-none" id="btnSahaCanliOnay" data-i18n="Canlı Açılışı Onayla">Canlı Açılışı Onayla</button>
+                    <button type="button" class="btn btn-danger d-none" id="btnSahaCanliIptal" data-i18n="İptal Et">İptal Et</button>
+                    <button type="button" class="btn btn-primary d-none" id="btnSahaEksikEvrakTamamlandi" data-i18n="Eksik Evrakı Ekledim">Eksik Evrakı Ekledim</button>
                 }
             </div>
         </div>
@@ -459,12 +459,12 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Canlı Açılış Onayı</h5>
+                <h5 class="modal-title" data-i18n="Canlı Açılış Onayı">Canlı Açılış Onayı</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label for="sahaCanliOrtamId" class="form-label">Canlı Ortam ID</label>
+                    <label for="sahaCanliOrtamId" class="form-label" data-i18n="Canlı Ortam ID">Canlı Ortam ID</label>
                     <input type="text"
                            id="sahaCanliOrtamId"
                            class="form-control"
@@ -472,16 +472,16 @@
                            autocomplete="off"
                            maxlength="20"
                            placeholder="Sadece rakam girin" />
-                    <div class="form-text">Bu alana sadece rakam girilebilir.</div>
+                    <div class="form-text" data-i18n="Bu alana sadece rakam girilebilir.">Bu alana sadece rakam girilebilir.</div>
                 </div>
                 <div>
-                    <label for="sahaCanliNot" class="form-label">Not</label>
+                    <label for="sahaCanliNot" class="form-label" data-i18n="Not">Not</label>
                     <textarea id="sahaCanliNot" class="form-control" rows="3" maxlength="250" placeholder="Opsiyonel"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
-                <button type="button" class="btn btn-success" id="btnSahaCanliModalKaydet">Onayla</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="Vazgeç">Vazgeç</button>
+                <button type="button" class="btn btn-success" id="btnSahaCanliModalKaydet" data-i18n="Onayla">Onayla</button>
             </div>
         </div>
     </div>

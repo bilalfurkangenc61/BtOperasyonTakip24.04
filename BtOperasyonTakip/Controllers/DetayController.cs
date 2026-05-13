@@ -417,7 +417,7 @@ namespace BtOperasyonTakip.Controllers
             }
             catch (Exception ex)
             {
-                TempData["MusteriError"] = "Kayıt sırasında hata: " + ex.Message;
+                TempData["MusteriError"] = $"Kayıt sırasında hata: {ex.Message}";
                 return RedirectToLocalOr(returnUrl, "Index", new { controller = "Musteri" });
             }
         }
@@ -510,7 +510,7 @@ namespace BtOperasyonTakip.Controllers
             }
             catch (Exception ex)
             {
-                TempData["MusteriError"] = "Güncelleme sırasında hata: " + ex.Message;
+                TempData["MusteriError"] = $"Güncelleme sırasında hata: {ex.Message}";
                 return RedirectToLocalOr(returnUrl, "Index", new { controller = "Musteri" });
             }
         }
@@ -552,7 +552,7 @@ namespace BtOperasyonTakip.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Silme sırasında hata: " + ex.Message });
+                return Json(new { success = false, message = $"Silme sırasında hata: {ex.Message}" });
             }
         }
 

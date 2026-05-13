@@ -88,26 +88,26 @@
 <div class="container-fluid izin-shell">
     <div class="izin-hero mb-4 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
         <div>
-            <h4 class="mb-1 text-white">İzin Takip</h4>
+            <h4 class="mb-1 text-white" data-i18n="İzin Takip">İzin Takip</h4>
             <div class="opacity-75">
                 @if (Model.IsAdmin)
                 {
-                    <span>Operasyon izin taleplerini yönetin ve izin hakkı tanımlayın.</span>
+                    <span data-i18n="Operasyon izin taleplerini yönetin ve izin hakkı tanımlayın.">Operasyon izin taleplerini yönetin ve izin hakkı tanımlayın.</span>
                 }
                 else
                 {
-                    <span>İzin talebinizi oluşturun, güncelleyin ve admin kararını takip edin.</span>
+                    <span data-i18n="İzin talebinizi oluşturun, güncelleyin ve admin kararını takip edin.">İzin talebinizi oluşturun, güncelleyin ve admin kararını takip edin.</span>
                 }
             </div>
         </div>
 
         <div class="d-flex flex-wrap gap-2 align-items-center">
-            <span class="izin-chip">Bekleyen: @Model.BekleyenTalepSayisi</span>
-            <span class="izin-chip">Onaylanan: @Model.OnaylananTalepSayisi</span>
-            <span class="izin-chip">Reddedilen: @Model.ReddedilenTalepSayisi</span>
+            <span class="izin-chip"><span data-i18n="Bekleyen">Bekleyen</span>: @Model.BekleyenTalepSayisi</span>
+            <span class="izin-chip"><span data-i18n="Onaylanan">Onaylanan</span>: @Model.OnaylananTalepSayisi</span>
+            <span class="izin-chip"><span data-i18n="Reddedilen">Reddedilen</span>: @Model.ReddedilenTalepSayisi</span>
             <a class="btn btn-sm btn-light fw-semibold"
                href="@Url.Action("ExportExcel", "Izin")">
-                Excel'e Aktar
+                <span data-i18n="Excel'e Aktar">Excel'e Aktar</span>
             </a>
         </div>
     </div>
@@ -131,56 +131,56 @@
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="summary-box">
-                <div class="summary-label">Tanımlı izin hakkı</div>
+                <div class="summary-label" data-i18n="Tanımlı izin hakkı">Tanımlı izin hakkı</div>
                 <div class="summary-value">@Model.ToplamHak</div>
-                <div class="text-muted small">gün</div>
+                <div class="text-muted small" data-i18n="gün">gün</div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="summary-box">
-                <div class="summary-label">Onaylanmış kullanılan izin</div>
+                <div class="summary-label" data-i18n="Onaylanmış kullanılan izin">Onaylanmış kullanılan izin</div>
                 <div class="summary-value">@Model.KullanilanGun</div>
-                <div class="text-muted small">gün</div>
+                <div class="text-muted small" data-i18n="gün">gün</div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="summary-box">
-                <div class="summary-label">Kalan izin</div>
+                <div class="summary-label" data-i18n="Kalan izin">Kalan izin</div>
                 <div class="summary-value">@Model.KalanGun</div>
-                <div class="text-muted small">gün</div>
+                <div class="text-muted small" data-i18n="gün">gün</div>
             </div>
         </div>
     </div>
 
     <div class="card izin-card mb-4">
         <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div class="fw-semibold">@(isEditMode ? "İzin Talebini Güncelle" : "Yeni İzin Talebi")</div>
-            <div class="text-muted small">Kaydedilen her değişiklik admin onayına yeniden düşer.</div>
+            <div class="fw-semibold" data-i18n="@(isEditMode ? "İzin Talebini Güncelle" : "Yeni İzin Talebi")">@(isEditMode ? "İzin Talebini Güncelle" : "Yeni İzin Talebi")</div>
+            <div class="text-muted small" data-i18n="Kaydedilen her değişiklik admin onayına yeniden düşer.">Kaydedilen her değişiklik admin onayına yeniden düşer.</div>
         </div>
         <div class="card-body">
             <form asp-controller="Izin" asp-action="SaveRequest" method="post" class="row g-3">
                 <input asp-for="Form.Id" type="hidden" />
 
                 <div class="col-md-3">
-                    <label asp-for="Form.BaslangicTarihi" class="form-label">Başlangıç Tarihi</label>
+                    <label asp-for="Form.BaslangicTarihi" class="form-label" data-i18n="Başlangıç Tarihi">Başlangıç Tarihi</label>
                     <input asp-for="Form.BaslangicTarihi" class="form-control" type="date" />
                 </div>
 
                 <div class="col-md-3">
-                    <label asp-for="Form.BitisTarihi" class="form-label">Bitiş Tarihi</label>
+                    <label asp-for="Form.BitisTarihi" class="form-label" data-i18n="Bitiş Tarihi">Bitiş Tarihi</label>
                     <input asp-for="Form.BitisTarihi" class="form-control" type="date" />
                 </div>
 
                 <div class="col-md-6">
-                    <label asp-for="Form.Aciklama" class="form-label">Açıklama / Mazeret</label>
+                    <label asp-for="Form.Aciklama" class="form-label" data-i18n="Açıklama / Mazeret">Açıklama / Mazeret</label>
                     <textarea asp-for="Form.Aciklama" class="form-control" rows="3" maxlength="1000" placeholder="İzin nedeni veya açıklamasını yazın..."></textarea>
                 </div>
 
                 <div class="col-12 d-flex gap-2 flex-wrap">
-                    <button type="submit" class="btn btn-primary">@(isEditMode ? "Güncelle ve Onaya Gönder" : "Talep Oluştur")</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="@(isEditMode ? "Güncelle ve Onaya Gönder" : "Talep Oluştur")">@(isEditMode ? "Güncelle ve Onaya Gönder" : "Talep Oluştur")</button>
                     @if (isEditMode)
                     {
-                        <a asp-controller="Izin" asp-action="Index" class="btn btn-outline-secondary">İptal</a>
+                        <a asp-controller="Izin" asp-action="Index" class="btn btn-outline-secondary" data-i18n="İptal">İptal</a>
                     }
                 </div>
             </form>
@@ -191,26 +191,26 @@
     {
         <div class="card izin-card mb-4">
             <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="fw-semibold">Kullanıcı İzin Hakları</div>
-                <div class="text-muted small">Sadece operasyon kullanıcıları listelenir.</div>
+                <div class="fw-semibold" data-i18n="Kullanıcı İzin Hakları">Kullanıcı İzin Hakları</div>
+                <div class="text-muted small" data-i18n="Sadece operasyon kullanıcıları listelenir.">Sadece operasyon kullanıcıları listelenir.</div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Kullanıcı</th>
-                                <th>Toplam Hak</th>
-                                <th>Kullanılan</th>
-                                <th>Kalan</th>
-                                <th style="width: 260px;">Yeni Hak Tanımı</th>
+                                <th data-i18n="Kullanıcı">Kullanıcı</th>
+                                <th data-i18n="Toplam Hak">Toplam Hak</th>
+                                <th data-i18n="Kullanılan">Kullanılan</th>
+                                <th data-i18n="Kalan">Kalan</th>
+                                <th style="width: 260px;" data-i18n="Yeni Hak Tanımı">Yeni Hak Tanımı</th>
                             </tr>
                         </thead>
                         <tbody>
                             @if (Model.KullaniciHaklari.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">Operasyon kullanıcısı bulunamadı.</td>
+                                    <td colspan="5" class="text-center text-muted py-4" data-i18n="Operasyon kullanıcısı bulunamadı.">Operasyon kullanıcısı bulunamadı.</td>
                                 </tr>
                             }
                             else
@@ -226,7 +226,7 @@
                                             <form asp-controller="Izin" asp-action="SetAllowance" method="post" class="d-flex gap-2">
                                                 <input type="hidden" name="userId" value="@hak.UserId" />
                                                 <input type="number" name="toplamGun" min="0" class="form-control" value="@hak.ToplamGun" />
-                                                <button type="submit" class="btn btn-outline-primary">Kaydet</button>
+                                                <button type="submit" class="btn btn-outline-primary" data-i18n="Kaydet">Kaydet</button>
                                             </form>
                                         </td>
                                     </tr>
@@ -241,8 +241,8 @@
 
     <div class="card izin-card">
         <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div class="fw-semibold">@(Model.IsAdmin ? "Tüm İzin Talepleri" : "İzin Taleplerim")</div>
-            <div class="text-muted small">Düzenlenen kayıtlar tekrar beklemeye alınır.</div>
+            <div class="fw-semibold" data-i18n="@(Model.IsAdmin ? "Tüm İzin Talepleri" : "İzin Taleplerim")">@(Model.IsAdmin ? "Tüm İzin Talepleri" : "İzin Taleplerim")</div>
+            <div class="text-muted small" data-i18n="Düzenlenen kayıtlar tekrar beklemeye alınır.">Düzenlenen kayıtlar tekrar beklemeye alınır.</div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -251,22 +251,22 @@
                         <tr>
                             @if (Model.IsAdmin)
                             {
-                                <th>Talep Sahibi</th>
+                                <th data-i18n="Talep Sahibi">Talep Sahibi</th>
                             }
-                            <th>Tarih Aralığı</th>
-                            <th>Gün</th>
-                            <th>Açıklama</th>
-                            <th>Durum</th>
-                            <th>Admin Notu</th>
-                            <th>Talep Tarihi</th>
-                            <th>İşlem</th>
+                            <th data-i18n="Tarih Aralığı">Tarih Aralığı</th>
+                            <th data-i18n="Gün">Gün</th>
+                            <th data-i18n="Açıklama">Açıklama</th>
+                            <th data-i18n="Durum">Durum</th>
+                            <th data-i18n="Admin Notu">Admin Notu</th>
+                            <th data-i18n="Talep Tarihi">Talep Tarihi</th>
+                            <th data-i18n="İşlem">İşlem</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (Model.Talepler.Count == 0)
                         {
                             <tr>
-                                <td colspan="@(Model.IsAdmin ? 8 : 7)" class="text-center text-muted py-4">Henüz izin talebi bulunmuyor.</td>
+                                <td colspan="@(Model.IsAdmin ? 8 : 7)" class="text-center text-muted py-4" data-i18n="Henüz izin talebi bulunmuyor.">Henüz izin talebi bulunmuyor.</td>
                             </tr>
                         }
                         else
@@ -317,7 +317,7 @@
                                         <div class="d-flex flex-column gap-2 decision-box">
                                             @if (talep.CanEdit)
                                             {
-                                                <a asp-controller="Izin" asp-action="Index" asp-route-editId="@talep.Id" class="btn btn-sm btn-outline-secondary">Düzenle</a>
+                                                <a asp-controller="Izin" asp-action="Index" asp-route-editId="@talep.Id" class="btn btn-sm btn-outline-secondary" data-i18n="Düzenle">Düzenle</a>
                                             }
 
                                             @if (talep.CanDecide)
@@ -326,8 +326,8 @@
                                                     <input type="hidden" name="id" value="@talep.Id" />
                                                     <textarea name="adminAciklama" class="form-control form-control-sm" rows="2" maxlength="1000" placeholder="Onay notu veya red mazereti..."></textarea>
                                                     <div class="d-flex gap-2">
-                                                        <button type="submit" name="karar" value="approve" class="btn btn-sm btn-success">Onayla</button>
-                                                        <button type="submit" name="karar" value="reject" class="btn btn-sm btn-danger">Reddet</button>
+                                                        <button type="submit" name="karar" value="approve" class="btn btn-sm btn-success" data-i18n="Onayla">Onayla</button>
+                                                        <button type="submit" name="karar" value="reject" class="btn btn-sm btn-danger" data-i18n="Reddet">Reddet</button>
                                                     </div>
                                                 </form>
                                             }

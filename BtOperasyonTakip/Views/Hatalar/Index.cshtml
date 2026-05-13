@@ -5,16 +5,16 @@
 }
 
 <div class="container mt-5">
-    <h2>Hatalar</h2>
+    <h2 data-i18n="Hatalar">Hatalar</h2>
 
     <div class="d-flex justify-content-end flex-wrap mb-3 gap-2">
         <a class="btn btn-outline-success"
            href="@Url.Action("ExportExcel", "Hatalar", new { q = ViewBag.Q, durum = ViewBag.Durum, kategori = ViewBag.Kategori, period = ViewBag.Period })">
-            Excel'e İndir
+            <span data-i18n="Excel'e İndir">Excel'e İndir</span>
         </a>
 
         <a href="/Hatalar/Yeni" class="btn btn-primary">
-            ➕ Yeni Hata Ekle
+            ➕ <span data-i18n="Yeni Hata Ekle">Yeni Hata Ekle</span>
         </a>
     </div>
 
@@ -25,7 +25,7 @@
 
         <div class="col-md-2">
             <select name="durum" class="form-control">
-                <option value="">Tüm Durumlar</option>
+                <option value="" data-i18n="Tüm Durumlar">Tüm Durumlar</option>
                 <option value="Açık" selected="@(ViewBag.Durum == "Açık")">Açık</option>
                 <option value="Kapalı" selected="@(ViewBag.Durum == "Kapalı")">Kapalı</option>
                 <option value="Beklemede" selected="@(ViewBag.Durum == "Beklemede")">Beklemede</option>
@@ -34,7 +34,7 @@
 
         <div class="col-md-2">
             <select name="kategori" class="form-control">
-                <option value="">Tüm Kategoriler</option>
+                <option value="" data-i18n="Tüm Kategoriler">Tüm Kategoriler</option>
                 <option value="Yazılım" selected="@(ViewBag.Kategori == "Yazılım")">Yazılım</option>
                 <option value="Donanım" selected="@(ViewBag.Kategori == "Donanım")">Donanım</option>
                 <option value="Ağ" selected="@(ViewBag.Kategori == "Ağ")">Ağ</option>
@@ -48,19 +48,19 @@
         </div>
 
         <div class="col-md-3 d-grid">
-            <button class="btn btn-secondary">Filtrele</button>
+            <button class="btn btn-secondary" data-i18n="Filtrele">Filtrele</button>
         </div>
     </form>
 
     <table class="table table-hover table-sm">
         <thead class="table-light">
             <tr>
-                <th>Hata</th>
-                <th>Müşteri</th>
-                <th>Kategori</th>
-                <th>Atanan</th>
-                <th>Durum</th>
-                <th>Tarih</th>
+                <th data-i18n="Hata">Hata</th>
+                <th data-i18n="Müşteri">Müşteri</th>
+                <th data-i18n="Kategori">Kategori</th>
+                <th data-i18n="Atanan">Atanan</th>
+                <th data-i18n="Durum">Durum</th>
+                <th data-i18n="Tarih">Tarih</th>
                 <th></th>
             </tr>
         </thead>
@@ -77,11 +77,11 @@
                     <td>
                         @if (h.Durum == "Açık")
                         {
-                            <span class="badge bg-danger">Açık</span>
+                            <span class="badge bg-danger" data-i18n="Açık">Açık</span>
                         }
                         else if (h.Durum == "Kapalı")
                         {
-                            <span class="badge bg-success">Kapalı</span>
+                            <span class="badge bg-success" data-i18n="Kapalı">Kapalı</span>
                         }
                         else
                         {
@@ -92,7 +92,7 @@
                     <td>@h.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
 
                     <td>
-                        <a href="/Hatalar/Detay/@h.Id" class="btn btn-sm btn-info">Detay</a>
+                        <a href="/Hatalar/Detay/@h.Id" class="btn btn-sm btn-info" data-i18n="Detay">Detay</a>
                     </td>
                 </tr>
             }

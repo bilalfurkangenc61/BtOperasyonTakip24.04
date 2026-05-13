@@ -6,7 +6,7 @@
     ViewData["Title"] = "Kullanıcı Yönetimi";
 }
 
-<h2 class="text-primary">Kullanıcı Yönetimi</h2>
+<h2 class="text-primary" data-i18n="Kullanıcı Yönetimi">Kullanıcı Yönetimi</h2>
 
 @if (TempData["Success"] != null)
 {
@@ -20,9 +20,9 @@ else if (TempData["Error"] != null)
 <table class="table table-bordered">
     <thead>
         <tr>
-            <th>Kullanıcı Adı</th>
-            <th>E-posta</th>
-            <th>İşlemler</th>
+            <th data-i18n="Kullanıcı Adı">Kullanıcı Adı</th>
+            <th data-i18n="E-posta">E-posta</th>
+            <th data-i18n="İşlemler">İşlemler</th>
         </tr>
     </thead>
     <tbody>
@@ -33,7 +33,7 @@ else if (TempData["Error"] != null)
                 <td>@user.Email</td>
                 <td>
                     <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id">
-                        <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+                        <button type="submit" class="btn btn-danger btn-sm" data-i18n="Sil">Sil</button>
                     </form>
                 </td>
             </tr>

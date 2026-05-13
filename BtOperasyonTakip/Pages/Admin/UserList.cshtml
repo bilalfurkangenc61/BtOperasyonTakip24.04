@@ -6,7 +6,7 @@
     ViewData["Title"] = "Kullanıcı Listesi";
 }
 
-<h2 class="text-primary">Kullanıcı Listesi</h2>
+<h2 class="text-primary" data-i18n="Kullanıcı Listesi">Kullanıcı Listesi</h2>
 
 @if (TempData["Success"] != null)
 {
@@ -20,8 +20,8 @@ else if (TempData["Error"] != null)
 <table class="table table-bordered">
     <thead>
         <tr>
-            <th>Kullanıcı Adı</th>
-            <th>E-posta</th>
+            <th data-i18n="Kullanıcı Adı">Kullanıcı Adı</th>
+            <th data-i18n="E-posta">E-posta</th>
     
         </tr>
     </thead>
@@ -38,5 +38,5 @@ else if (TempData["Error"] != null)
 </table>
 
 <div class="mb-3">
-    <a href="/Auth/Register" class="btn btn-success">+ Yeni Kullanıcı Ekle</a>
+    <a href="/Auth/Register" class="btn btn-success" data-i18n="+ Yeni Kullanıcı Ekle">+ Yeni Kullanıcı Ekle</a>
 </div>

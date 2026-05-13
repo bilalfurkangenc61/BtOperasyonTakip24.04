@@ -449,8 +449,7 @@
 
     <div class="welcome-bar">
         <div>
-            <h5>Hoş geldin, <strong>@(User.Identity?.Name ?? "Kullanıcı")</strong>!</h5>
-            <div class="sub" id="motivasyonMetni"></div>
+            <h5><span id="dashboardWelcomeText" data-user-name="@(User.Identity?.Name ?? "Kullanıcı")">Hoş geldin, <strong>@(User.Identity?.Name ?? "Kullanıcı")</strong>!</span></h5>
         </div>
         <div id="saatTarih"></div>
     </div>
@@ -477,10 +476,10 @@
         <div class="col-xl-3 col-md-6 col-12">
             <div class="card stat-card primary-stat-card bg-primary text-center">
                 <div class="card-body">
-                    <h6>Toplam Müşteri</h6>
+                    <h6>Seçili Ay Müşteri</h6>
                     <h2>@Model.ToplamMusteri</h2>
                     <div class="stat-meta">
-                        <span>Aylık Eklenen</span>
+                        <span>@seciliDonemLabel</span>
                         <strong>@Model.BuAyEklenen</strong>
                     </div>
                 </div>
@@ -490,10 +489,10 @@
         <div class="col-xl-3 col-md-6 col-12">
             <div class="card stat-card primary-stat-card bg-success text-center">
                 <div class="card-body">
-                    <h6>Aktif Müşteri</h6>
+                    <h6>Seçili Ay Aktif Müşteri</h6>
                     <h2>@Model.AktifMusteri</h2>
                     <div class="stat-meta">
-                        <span>Genel Portföy</span>
+                        <span>@seciliDonemLabel</span>
                     </div>
                 </div>
             </div>
@@ -524,42 +523,6 @@
         </div>
     </div>
 
-    <div class="card secondary-summary-card mb-4">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                <div class="section-title mb-0">Detaylı Özet</div>
-                <div class="small text-muted">Seçili ay için ikincil göstergeler</div>
-            </div>
-
-            <div class="secondary-stat-grid">
-                <div class="secondary-stat-item">
-                    <div class="secondary-stat-label">Pasif Müşteri</div>
-                    <div class="secondary-stat-value">@Model.PasifMusteri</div>
-                </div>
-                <div class="secondary-stat-item">
-                    <div class="secondary-stat-label">Onay Bekleyen</div>
-                    <div class="secondary-stat-value">@Model.TicketOnaybekleniyor</div>
-                </div>
-                <div class="secondary-stat-item">
-                    <div class="secondary-stat-label">Onaylanan</div>
-                    <div class="secondary-stat-value">@Model.TicketOnaylandi</div>
-                </div>
-                <div class="secondary-stat-item">
-                    <div class="secondary-stat-label">Açık Hata</div>
-                    <div class="secondary-stat-value">@Model.HataAcikSeciliAy</div>
-                </div>
-                <div class="secondary-stat-item">
-                    <div class="secondary-stat-label">Beklemede Hata</div>
-                    <div class="secondary-stat-value">@Model.HataBeklemedeSeciliAy</div>
-                </div>
-                <div class="secondary-stat-item">
-                    <div class="secondary-stat-label">Kapalı Hata</div>
-                    <div class="secondary-stat-value">@Model.HataKapaliSeciliAy</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="row g-3 mb-4 align-items-stretch">
         <div class="col-xl-6 col-lg-6 col-12">
             <div class="card chart-card chart-card-compact chart-card--indigo h-100">
@@ -567,8 +530,8 @@
                     <div class="chart-head-main">
                         <div class="chart-icon chart-icon--indigo"><i class="bi bi-graph-up-arrow"></i></div>
                         <div class="chart-title-wrap">
-                            <h5 class="chart-title">Aylık Müşteri Artışı</h5>
-                            <div class="chart-subtitle">Son 6 ay yeni müşteri trendi</div>
+                            <h5 class="chart-title" data-i18n="Aylık Yeni Kayıt">Aylık Yeni Kayıt</h5>
+                            <div class="chart-subtitle" data-i18n="Son 6 ay yeni kayıt trendi">Son 6 ay yeni kayıt trendi</div>
                         </div>
                     </div>
                     <span class="chart-period-badge">@seciliDonemLabel</span>
@@ -593,129 +556,6 @@
             </div>
         </div>
 
-        <div class="col-xl-6 col-lg-6 col-12">
-            <div class="card chart-card chart-card-compact h-100">
-                <div class="chart-head">
-                    <div class="chart-head-main">
-                        <div class="chart-icon"><i class="bi bi-kanban"></i></div>
-                        <div class="chart-title-wrap">
-                            <h5 class="chart-title">Jira Durumu</h5>
-                            <div class="chart-subtitle">Bekleyen, aktif ve tamamlanan işler</div>
-                        </div>
-                    </div>
-                    <span class="chart-period-badge">@seciliDonemLabel</span>
-                </div>
-                <div class="chart-box"><canvas id="jiraStatusChart"></canvas></div>
-            </div>
-        </div>
-        <div class="col-xl-6 col-lg-6 col-12">
-            <div class="card chart-card chart-card-compact chart-card--amber h-100">
-                <div class="chart-head">
-                    <div class="chart-head-main">
-                        <div class="chart-icon chart-icon--amber"><i class="bi bi-ticket-detailed"></i></div>
-                        <div class="chart-title-wrap">
-                            <h5 class="chart-title">Ticket Durumu</h5>
-                            <div class="chart-subtitle">Onay bekleyen, onaylanan ve reddedilenler</div>
-                        </div>
-                    </div>
-                    <span class="chart-period-badge">@seciliDonemLabel</span>
-                </div>
-                <div class="chart-box"><canvas id="ticketStatusChart"></canvas></div>
-            </div>
-        </div>
-    </div>
-
-
-    <div class="card dashboard-table-card mb-4">
-        <div class="card-header">
-            Sistem Ticketları (@Model.Tickets.Count)
-        </div>
-        <div class="card-body">
-            @if (!Model.Tickets.Any())
-            {
-                <div class="empty-state">
-                    <i class="bi bi-ticket"></i>
-                    <h5>Ticket Bulunmuyor</h5>
-                    <p>Henüz hiç ticket oluşturulmamıştır.</p>
-                </div>
-            }
-            else
-            {
-                <div class="ticket-search-card mb-3">
-                    <div class="row g-2 align-items-center">
-                        <div class="col-lg-3">
-                            <div class="fw-semibold text-primary">Ticket Arama</div>
-                            <div class="small text-muted">Web sitesi, yazılımcı, mail veya oluşturan ile filtrele</div>
-                        </div>
-                        <div class="col-lg-5">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="search" id="ticketSearch" class="form-control" placeholder="Arayın...">
-                            </div>
-                        </div>
-                        <div class="col-lg-2">
-                            <button type="button" id="ticketSearchClear" class="btn btn-outline-secondary w-100">Temizle</button>
-                        </div>
-                        <div class="col-lg-2 text-lg-end small text-muted" id="ticketSearchInfo"></div>
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table id="ticketTable" class="table table-striped table-bordered align-middle">
-                        <thead class="table-secondary">
-                            <tr>
-                                <th>#</th>
-                                <th>Müşteri Web Sitesi</th>
-                                <th>Yazılımcı</th>
-                                <th>Mail</th>
-                                <th>Teknoloji</th>
-                                <th>Durum</th>
-                                <th>Oluşturan</th>
-                                <th>Tarih</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var ticket in Model.Tickets.OrderByDescending(x => x.OlusturmaTarihi))
-                            {
-                                var statusBadgeClass = ticket.Durum switch
-                                {
-                                    "Onay Bekleniyor" => "bg-warning text-dark",
-                                    "Onaylandi" => "bg-success",
-                                    "Reddedildi" => "bg-danger",
-                                    _ => "bg-secondary"
-                                };
-
-                                <tr>
-                                    <td><strong>@ticket.Id</strong></td>
-                                    <td>
-                                        <a href="@ticket.MusteriWebSitesi" target="_blank" class="text-decoration-none">
-                                            @(ticket.MusteriWebSitesi.Length > 30 ? ticket.MusteriWebSitesi.Substring(0, 30) + "..." : ticket.MusteriWebSitesi)
-                                        </a>
-                                    </td>
-                                    <td>@ticket.YazilimciAdi @ticket.YazilimciSoyadi</td>
-                                    <td>
-                                        @if (!string.IsNullOrWhiteSpace(ticket.Mail))
-                                        {
-                                            <a href="mailto:@ticket.Mail" class="text-decoration-none">
-                                                @(ticket.Mail.Length > 20 ? ticket.Mail.Substring(0, 20) + "..." : ticket.Mail)
-                                            </a>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">-</span>
-                                        }
-                                    </td>
-                                    <td><span class="badge bg-info">@ticket.TeknolojiBilgisi</span></td>
-                                    <td><span class="badge @statusBadgeClass">@ticket.Durum</span></td>
-                                    <td>@ticket.OlusturanKullaniciAdi</td>
-                                    <td>@ticket.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
     </div>
 
 </div>
@@ -761,22 +601,37 @@
 
             $(document).on('click', 'a.site-link', function (e) { e.stopPropagation(); });
 
-            $("#motivasyonMetni").text("Hoşgeldiniz!");
+            syncDashboardWelcomeTexts();
         });
+
+        function syncDashboardWelcomeTexts() {
+            const language = window.UiLocalization?.getLanguage?.() ?? 'tr';
+            const userName = document.getElementById('dashboardWelcomeText')?.dataset.userName ?? 'Kullanıcı';
+
+            $("#dashboardWelcomeText").html(language === 'en'
+                ? `Welcome, <strong>${userName}</strong>!`
+                : `Hoş geldin, <strong>${userName}</strong>!`);
+        }
 
         function guncelleSaat() {
             const now = new Date();
-            $("#saatTarih").html(`${now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} | ${now.toLocaleDateString('tr-TR')}`);
+            const culture = window.UiLocalization?.getLanguage?.() === 'en' ? 'en-US' : 'tr-TR';
+            $("#saatTarih").html(`${now.toLocaleTimeString(culture, { hour: '2-digit', minute: '2-digit' })} | ${now.toLocaleDateString(culture)}`);
         }
         setInterval(guncelleSaat, 1000);
         guncelleSaat();
+
+        document.addEventListener('ui-language-changed', function () {
+            syncDashboardWelcomeTexts();
+            guncelleSaat();
+        });
 
         new Chart(document.getElementById('customerChart'), {
             type: 'line',
             data: {
                 labels: @Html.Raw(Json.Serialize(Model.AyEtiketleri)),
                 datasets: [{
-                    label: 'Yeni Müşteriler',
+                    label: 'Yeni Kayıtlar',
                     data: @Html.Raw(Json.Serialize(Model.AylikMusteriSayilari)),
                     borderColor: '#007bff',
                     backgroundColor: 'rgba(0,123,255,0.15)',
@@ -936,75 +791,5 @@
             }
         });
 
-        new Chart(document.getElementById('jiraStatusChart'), {
-            type: 'doughnut',
-            data: {
-                labels: ['Beklemede', 'Aktif', 'Tamamlandı'],
-                datasets: [{
-                    data: [@Model.JiraBeklemede, @Model.JiraAktif, @Model.JiraTamamlandi],
-                    backgroundColor: ['#ffc107', '#0d6efd', '#20c997'],
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
-            options: {
-                plugins: { legend: { position: 'bottom' } },
-                cutout: '70%'
-            }
-        });
-
-        new Chart(document.getElementById('ticketStatusChart'), {
-            type: 'bar',
-            data: {
-                labels: ['Onay Bekleyen', 'Onaylanan', 'Reddedilen'],
-                datasets: [{
-                    label: 'Ticket Sayısı',
-                    data: [@Model.TicketOnaybekleniyor, @Model.TicketOnaylandi, @Model.TicketReddedildi],
-                    backgroundColor: ['#ffc107', '#28a745', '#dc3545'],
-                    borderColor: ['#ff9800', '#20c997', '#c82333'],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                plugins: { legend: { display: true, position: 'top' } },
-                scales: { y: { beginAtZero: true } }
-            }
-        });
-
-        const ticketTableElement = $('#ticketTable');
-        if (ticketTableElement.length) {
-            const ticketTable = ticketTableElement.DataTable({
-                order: [[7, "desc"]],
-                responsive: true,
-                dom: 'Btip',
-                buttons: [
-                    { extend: 'excelHtml5', text: 'Excel', className: 'btn btn-success btn-sm' },
-                    { extend: 'pdfHtml5', text: 'PDF', className: 'btn btn-danger btn-sm' },
-                    { extend: 'print', text: 'Yazdır', className: 'btn btn-primary btn-sm' }
-                ],
-                language: { url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json" }
-            });
-
-            $('#ticketSearch').on('input', function () {
-                ticketTable.search(this.value).draw();
-            });
-
-            $('#ticketSearchClear').on('click', function () {
-                $('#ticketSearch').val('');
-                ticketTable.search('').draw();
-            });
-
-            function updateTicketSearchInfo() {
-                const info = ticketTable.page.info();
-                $('#ticketSearchInfo').text(`${info.recordsDisplay} / ${info.recordsTotal} kayıt`);
-            }
-
-            ticketTable.on('draw', updateTicketSearchInfo);
-            updateTicketSearchInfo();
-
-            $('#ticketSearch').on('keypress', function (e) {
-                if (e.which === 13) e.preventDefault();
-            });
-        }
     </script>
 }

@@ -106,6 +106,51 @@ namespace BtOperasyonTakip.Controllers
                 .ToList();
         }
 
+        private static DateTime ResolveSelectedMonth(string? month)
+        {
+            if (!string.IsNullOrWhiteSpace(month) &&
+                DateTime.TryParseExact(month.Trim(), "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedMonth))
+            {
+                return new DateTime(parsedMonth.Year, parsedMonth.Month, 1);
+            }
+
+            var now = DateTime.Now;
+            return new DateTime(now.Year, now.Month, 1);
+        }
+
+        private List<DateTime> GetAvailableMonths(DateTime selectedMonth)
+        {
+            var taskMonths = _context.JiraTasks
+                .AsNoTracking()
+                .Select(x => x.OlusturmaTarihi)
+                .ToList()
+                .Select(x => new DateTime(x.Year, x.Month, 1));
+
+            var commentMonths = _context.JiraYorumlar
+                .AsNoTracking()
+                .Select(x => x.Tarih)
+                .ToList()
+                .Select(x => new DateTime(x.Year, x.Month, 1));
+
+            var months = taskMonths
+                .Concat(commentMonths)
+                .Distinct()
+                .OrderByDescending(x => x)
+                .ToList();
+
+            if (!months.Any())
+            {
+                months.Add(selectedMonth);
+            }
+            else if (!months.Contains(selectedMonth))
+            {
+                months.Add(selectedMonth);
+                months = months.OrderByDescending(x => x).ToList();
+            }
+
+            return months;
+        }
+
         private void AddYorumVeMusteriDetay(JiraTask task, string yorum, string ekleyen)
         {
             var now = DateTime.Now;
@@ -134,11 +179,18 @@ namespace BtOperasyonTakip.Controllers
         }
 
         [HttpGet]
-        public IActionResult Index(string? q, string? kisi = null, int? selectedTaskId = null, int page = 1, int pageSize = DefaultPageSize)
+        public IActionResult Index(string? q, string? kisi = null, string? ay = null, int? selectedTaskId = null, int page = 1, int pageSize = DefaultPageSize)
         {
             page = page < 1 ? 1 : page;
             pageSize = pageSize < 1 ? DefaultPageSize : pageSize;
             pageSize = pageSize > MaxPageSize ? MaxPageSize : pageSize;
+
+            var selectedMonth = ResolveSelectedMonth(ay);
+            var selectedMonthValue = selectedMonth.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+            var selectedMonthLabel = selectedMonth.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("tr-TR"));
+            var monthStart = selectedMonth;
+            var nextMonthStart = selectedMonth.AddMonths(1);
+            var availableMonths = GetAvailableMonths(selectedMonth);
 
             var anaDurumlar = new[] { "Beklemede", "Aktif", "Tamamlandı" };
             var ekstraDurumlar = Request.Query["ekstraDurumlar"].ToArray();
@@ -181,6 +233,10 @@ namespace BtOperasyonTakip.Controllers
                 var selectedKisi = kisi.ToLowerInvariant();
                 query = query.Where(t => (t.TakipEden ?? "").ToLower() == selectedKisi);
             }
+
+            query = query.Where(t =>
+                (t.OlusturmaTarihi >= monthStart && t.OlusturmaTarihi < nextMonthStart) ||
+                t.Yorumlar!.Any(y => y.Tarih >= monthStart && y.Tarih < nextMonthStart));
 
             query = query.OrderByDescending(x => x.OlusturmaTarihi);
 
@@ -233,12 +289,25 @@ namespace BtOperasyonTakip.Controllers
                 model.SelectedTask = _context.JiraTasks
                     .AsNoTracking()
                     .Include(x => x.Yorumlar)
-                    .FirstOrDefault(x => x.Id == selectedTaskId.Value);
+                    .FirstOrDefault(x => x.Id == selectedTaskId.Value &&
+                        ((x.OlusturmaTarihi >= monthStart && x.OlusturmaTarihi < nextMonthStart) ||
+                         x.Yorumlar!.Any(y => y.Tarih >= monthStart && y.Tarih < nextMonthStart)));
+
+                if (model.SelectedTask?.Yorumlar != null)
+                {
+                    model.SelectedTask.Yorumlar = model.SelectedTask.Yorumlar
+                        .Where(y => y.Tarih >= monthStart && y.Tarih < nextMonthStart)
+                        .OrderByDescending(y => y.Tarih)
+                        .ToList();
+                }
             }
 
             ViewBag.KullaniciSecenekleri = operasyonKullaniciList;
             ViewBag.KisiSecenekleri = operasyonKullaniciList;
             ViewBag.SelectedKisi = kisi;
+            ViewBag.SelectedAy = selectedMonthValue;
+            ViewBag.SelectedAyLabel = selectedMonthLabel;
+            ViewBag.AvailableAylar = availableMonths;
             ViewBag.DurumListesi = durumListesi;
             ViewBag.AnaDurumlar = anaDurumlar;
             ViewBag.SelectedEkstraDurumlar = seciliEkstraDurumlar;
@@ -248,9 +317,9 @@ namespace BtOperasyonTakip.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(JiraTask model)
+        public IActionResult Create(JiraTask model, string? returnUrl)
         {
-            if (model == null) return RedirectToAction(nameof(Index));
+            if (model == null) return RedirectToLocalOrIndex(returnUrl);
 
             model.JiraId = (model.JiraId ?? string.Empty).Trim();
             model.TalepKonusu = (model.TalepKonusu ?? "").Trim();
@@ -263,7 +332,7 @@ namespace BtOperasyonTakip.Controllers
             if (!string.IsNullOrWhiteSpace(model.TalepTuru) && !AllowedTalepTurleri.Contains(model.TalepTuru, StringComparer.Ordinal))
             {
                 TempData["JiraError"] = "Geçersiz iş tipi seçildi.";
-                return RedirectToAction(nameof(Index));
+                return RedirectToLocalOrIndex(returnUrl);
             }
 
             if (model.MusteriID.HasValue && model.MusteriID > 0)
@@ -275,7 +344,7 @@ namespace BtOperasyonTakip.Controllers
                 if (musteri == null)
                 {
                     TempData["JiraError"] = "Seçilen müşteri bulunamadı.";
-                    return RedirectToAction(nameof(Index));
+                    return RedirectToLocalOrIndex(returnUrl);
                 }
 
                 model.MusteriAdi = (musteri.Firma ?? "").Trim();
@@ -289,7 +358,7 @@ namespace BtOperasyonTakip.Controllers
             if (string.IsNullOrWhiteSpace(model.TalepKonusu))
             {
                 TempData["JiraError"] = "Talep Konusu zorunludur.";
-                return RedirectToAction(nameof(Index));
+                return RedirectToLocalOrIndex(returnUrl);
             }
 
             model.OlusturmaTarihi = DateTime.Now;
@@ -298,7 +367,7 @@ namespace BtOperasyonTakip.Controllers
             _context.SaveChanges();
 
             TempData["JiraOk"] = "Görev eklendi.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToLocalOrIndex(returnUrl);
         }
 
         [HttpPost]
@@ -463,20 +532,20 @@ namespace BtOperasyonTakip.Controllers
                     return Json(new { success = false, message = "Invalid ID" });
 
                 if (string.IsNullOrWhiteSpace(model.YeniDurum))
-                    return Json(new { success = false, message = "Empty status" });
+                    return Json(new { success = false, message = "Durum boş olamaz." });
 
                 var task = _context.JiraTasks.Find(model.Id);
                 if (task == null)
-                    return Json(new { success = false, message = "Task not found" });
+                    return Json(new { success = false, message = "Görev bulunamadı." });
 
                 task.Durum = model.YeniDurum.Trim();
                 _context.SaveChanges();
 
-                return Json(new { success = true, message = "Status updated" });
+                return Json(new { success = true, message = "Durum güncellendi." });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = $"Error: {ex.Message}" });
+                return Json(new { success = false, message = $"Hata: {ex.Message}" });
             }
         }
 
@@ -506,11 +575,11 @@ namespace BtOperasyonTakip.Controllers
         public JsonResult Assign([FromBody] AssignModel model)
         {
             if (model == null || model.Id <= 0)
-                return Json(new { success = false, message = "Geçersiz model" });
+                return Json(new { success = false, message = "Geçersiz kayıt." });
 
             var task = _context.JiraTasks.Find(model.Id);
             if (task == null)
-                return Json(new { success = false, message = "Kayıt bulunamadı" });
+                return Json(new { success = false, message = "Kayıt bulunamadı." });
 
             task.TakipEden = (model.TakipEden ?? "").Trim();
             _context.SaveChanges();

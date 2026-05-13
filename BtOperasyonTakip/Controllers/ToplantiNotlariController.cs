@@ -108,10 +108,14 @@ namespace BtOperasyonTakip.Controllers
             };
 
             if (!ModelState.IsValid)
+            {
+                TempData["ToplantiError"] = "Kayıt doğrulanamadı.";
                 return RedirectToAction("Index");
+            }
 
             _context.ToplantiNotlari.Add(model);
             _context.SaveChanges();
+            TempData["ToplantiOk"] = "Toplantı kaydı oluşturuldu.";
             return RedirectToAction("Index");
         }
 
@@ -141,6 +145,11 @@ namespace BtOperasyonTakip.Controllers
         {
             var note = _context.ToplantiNotlari.Find(id);
             if (note == null) return NotFound();
+
+            var requestedLanguage = (Request.Query["lang"].ToString() ?? string.Empty).Trim().ToLowerInvariant();
+            var isEnglish = requestedLanguage == "en";
+
+            string T(string tr, string en) => isEnglish ? en : tr;
 
             string HtmlSafe(string? s) => WebUtility.HtmlEncode(s ?? string.Empty);
 
@@ -175,10 +184,10 @@ namespace BtOperasyonTakip.Controllers
 
             var html = new StringBuilder();
             html.AppendLine("<!DOCTYPE html>");
-            html.AppendLine("<html lang=\"tr\">");
+            html.AppendLine($"<html lang=\"{(isEnglish ? "en" : "tr")}\">");
             html.AppendLine("<head>");
             html.AppendLine("    <meta charset=\"utf-8\" />");
-            html.AppendLine("    <title>Toplantı Tutanağı</title>");
+            html.AppendLine($"    <title>{T("Toplantı Tutanağı", "Meeting Minutes")}</title>");
             html.AppendLine("    <style>");
             html.AppendLine("        body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; }");
             html.AppendLine("        h1, h2 { text-align: center; margin: 4px 0; }");
@@ -192,31 +201,31 @@ namespace BtOperasyonTakip.Controllers
             html.AppendLine("    </style>");
             html.AppendLine("</head>");
             html.AppendLine("<body>");
-            html.AppendLine("    <h1>İsim</h1>");
-            html.AppendLine("    <h2>Toplantı Tutanağı</h2>");
+            html.AppendLine($"    <h1>{T("İsim", "Name")}</h1>");
+            html.AppendLine($"    <h2>{T("Toplantı Tutanağı", "Meeting Minutes")}</h2>");
             html.AppendLine("    <br />");
             html.AppendLine("    <table class=\"header-table\">");
             html.AppendLine("        <tr>");
             html.AppendLine("            <td style=\"width:25%; text-align:center; vertical-align:middle;\"><strong>HALKÖDE</strong></td>");
             html.AppendLine("            <td></td>");
             html.AppendLine("        </tr>");
-            html.AppendLine($"        <tr><td class=\"meta-label\">Toplantı Başlığı</td><td class=\"meta-value\">{HtmlSafe(baslik)}</td></tr>");
-            html.AppendLine($"        <tr><td class=\"meta-label\">Konum</td><td class=\"meta-value\">{HtmlSafe(konum)}</td></tr>");
+            html.AppendLine($"        <tr><td class=\"meta-label\">{T("Toplantı Başlığı", "Meeting Title")}</td><td class=\"meta-value\">{HtmlSafe(baslik)}</td></tr>");
+            html.AppendLine($"        <tr><td class=\"meta-label\">{T("Konum", "Location")}</td><td class=\"meta-value\">{HtmlSafe(konum)}</td></tr>");
             html.AppendLine("        <tr>");
-            html.AppendLine($"            <td class=\"meta-label\">Tarih</td>");
-            html.AppendLine($"            <td class=\"meta-value\">{HtmlSafe(tarihStr)}&nbsp;&nbsp;&nbsp; Saat: {HtmlSafe(saatStrPlain)}</td>");
+            html.AppendLine($"            <td class=\"meta-label\">{T("Tarih", "Date")}</td>");
+            html.AppendLine($"            <td class=\"meta-value\">{HtmlSafe(tarihStr)}&nbsp;&nbsp;&nbsp; {T("Saat", "Time")}: {HtmlSafe(saatStrPlain)}</td>");
             html.AppendLine("        </tr>");
-            html.AppendLine($"        <tr><td class=\"meta-label\">Hazırlayan</td><td class=\"meta-value\">{HtmlSafe(hazirlayan)}</td></tr>");
-            html.AppendLine($"        <tr><td class=\"meta-label\">Katılımcılar</td><td class=\"meta-value\">{HtmlSafe(katilimcilar)}</td></tr>");
+            html.AppendLine($"        <tr><td class=\"meta-label\">{T("Hazırlayan", "Prepared By")}</td><td class=\"meta-value\">{HtmlSafe(hazirlayan)}</td></tr>");
+            html.AppendLine($"        <tr><td class=\"meta-label\">{T("Katılımcılar", "Participants")}</td><td class=\"meta-value\">{HtmlSafe(katilimcilar)}</td></tr>");
             html.AppendLine("    </table>");
             html.AppendLine("    <br />");
             html.AppendLine("    <table>");
             html.AppendLine("        <tr class=\"topic-header\">");
             html.AppendLine("            <th style=\"width:5%;\">#</th>");
-            html.AppendLine("            <th style=\"width:55%;\">Konu</th>");
-            html.AppendLine("            <th style=\"width:15%;\">Türü</th>");
-            html.AppendLine("            <th style=\"width:15%;\">Aksiyon Sahibi</th>");
-            html.AppendLine("            <th style=\"width:10%;\">Hedef Tarihi</th>");
+            html.AppendLine($"            <th style=\"width:55%;\">{T("Konu", "Topic")}</th>");
+            html.AppendLine($"            <th style=\"width:15%;\">{T("Türü", "Type")}</th>");
+            html.AppendLine($"            <th style=\"width:15%;\">{T("Aksiyon Sahibi", "Action Owner")}</th>");
+            html.AppendLine($"            <th style=\"width:10%;\">{T("Hedef Tarihi", "Target Date")}</th>");
             html.AppendLine("        </tr>");
 
             if (konuSatirlari.Count == 0)
@@ -258,7 +267,7 @@ namespace BtOperasyonTakip.Controllers
 
             if (format == "html")
             {
-                var fileNameHtml = $"ToplantiTutanagi_{note.Id}_{safeName}.html";
+                var fileNameHtml = $"{(isEnglish ? "MeetingMinutes" : "ToplantiTutanagi")}_{note.Id}_{safeName}.html";
                 return File(Encoding.UTF8.GetBytes(html.ToString()), "text/html; charset=utf-8", fileNameHtml);
             }
 
@@ -273,12 +282,12 @@ namespace BtOperasyonTakip.Controllers
                 var titleFont = new Font(baseFont, 14, Font.BOLD);
                 var normalFont = new Font(baseFont, 10, Font.NORMAL);
 
-                var p1 = new Paragraph("İsim", titleFont)
+                var p1 = new Paragraph(T("İsim", "Name"), titleFont)
                 {
                     Alignment = Element.ALIGN_CENTER,
                     SpacingAfter = 4f
                 };
-                var p2 = new Paragraph("Toplantı Tutanağı", titleFont)
+                var p2 = new Paragraph(T("Toplantı Tutanağı", "Meeting Minutes"), titleFont)
                 {
                     Alignment = Element.ALIGN_CENTER,
                     SpacingAfter = 12f
@@ -301,15 +310,15 @@ namespace BtOperasyonTakip.Controllers
                     return cell;
                 }
 
-                metaTable.AddCell(MetaCell("Toplantı Başlığı", true));
+                metaTable.AddCell(MetaCell(T("Toplantı Başlığı", "Meeting Title"), true));
                 metaTable.AddCell(MetaCell(note.ToplantiBasligi ?? string.Empty, false));
-                metaTable.AddCell(MetaCell("Konum", true));
+                metaTable.AddCell(MetaCell(T("Konum", "Location"), true));
                 metaTable.AddCell(MetaCell(note.Konum ?? string.Empty, false));
-                metaTable.AddCell(MetaCell("Tarih", true));
-                metaTable.AddCell(MetaCell($"{tarihStr}  Saat: {saatStrPlain}", false));
-                metaTable.AddCell(MetaCell("Hazırlayan", true));
+                metaTable.AddCell(MetaCell(T("Tarih", "Date"), true));
+                metaTable.AddCell(MetaCell($"{tarihStr}  {T("Saat", "Time")}: {saatStrPlain}", false));
+                metaTable.AddCell(MetaCell(T("Hazırlayan", "Prepared By"), true));
                 metaTable.AddCell(MetaCell(note.Hazirlayan ?? string.Empty, false));
-                metaTable.AddCell(MetaCell("Katılımcılar", true));
+                metaTable.AddCell(MetaCell(T("Katılımcılar", "Participants"), true));
                 metaTable.AddCell(MetaCell(note.Katilimcilar ?? string.Empty, false));
 
                 doc.Add(metaTable);
@@ -329,10 +338,10 @@ namespace BtOperasyonTakip.Controllers
                 }
 
                 topicTable.AddCell(HeaderCell("#"));
-				topicTable.AddCell(HeaderCell("Konu"));
-				topicTable.AddCell(HeaderCell("Türü"));
-				topicTable.AddCell(HeaderCell("Aksiyon Sahibi"));
-                topicTable.AddCell(HeaderCell("Hedef Tarihi"));
+             topicTable.AddCell(HeaderCell(T("Konu", "Topic")));
+                topicTable.AddCell(HeaderCell(T("Türü", "Type")));
+                topicTable.AddCell(HeaderCell(T("Aksiyon Sahibi", "Action Owner")));
+                topicTable.AddCell(HeaderCell(T("Hedef Tarihi", "Target Date")));
 
                 var topicRowColor = new BaseColor(230, 242, 255);
 
@@ -361,13 +370,13 @@ namespace BtOperasyonTakip.Controllers
                 doc.Add(topicTable);
                 doc.Close();
 
-                var fileNamePdf = $"ToplantiTutanagi_{note.Id}_{safeName}.pdf";
+                var fileNamePdf = $"{(isEnglish ? "MeetingMinutes" : "ToplantiTutanagi")}_{note.Id}_{safeName}.pdf";
                 return File(stream.ToArray(), "application/pdf", fileNamePdf);
             }
 
             if (format == "doc")
             {
-                var fileNameDoc = $"ToplantiTutanagi_{note.Id}_{safeName}.doc";
+                var fileNameDoc = $"{(isEnglish ? "MeetingMinutes" : "ToplantiTutanagi")}_{note.Id}_{safeName}.doc";
                 var bytesDoc = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(html.ToString())).ToArray();
                 return File(bytesDoc, "application/msword", fileNameDoc);
             }
@@ -375,26 +384,26 @@ namespace BtOperasyonTakip.Controllers
             if (format == "txt")
             {
                 var content = new StringBuilder();
-                content.AppendLine($"Toplantı Başlığı: {note.ToplantiBasligi}");
-                content.AppendLine($"Konum: {note.Konum}");
-                content.AppendLine($"Tarih: {note.Tarih:dd.MM.yyyy} Saat: {note.Saat}");
-                content.AppendLine($"Hazırlayan: {note.Hazirlayan}");
-                content.AppendLine($"Katılımcılar: {note.Katilimcilar}");
+                content.AppendLine($"{T("Toplantı Başlığı", "Meeting Title")}: {note.ToplantiBasligi}");
+                content.AppendLine($"{T("Konum", "Location")}: {note.Konum}");
+                content.AppendLine($"{T("Tarih", "Date")}: {note.Tarih:dd.MM.yyyy} {T("Saat", "Time")}: {note.Saat}");
+                content.AppendLine($"{T("Hazırlayan", "Prepared By")}: {note.Hazirlayan}");
+                content.AppendLine($"{T("Katılımcılar", "Participants")}: {note.Katilimcilar}");
                 content.AppendLine();
-                content.AppendLine("Konu:");
+                content.AppendLine($"{T("Konu", "Topic")}: ");
                 if (konuSatirlari.Count == 0)
                     content.AppendLine(note.NotIcerigi ?? string.Empty);
                 else
                     foreach (var sat in konuSatirlari) content.AppendLine($"- {sat}");
 
-                var fileNameTxt = $"ToplantiNotu_{note.Id}_{safeName}.txt";
+                var fileNameTxt = $"{(isEnglish ? "MeetingNote" : "ToplantiNotu")}_{note.Id}_{safeName}.txt";
                 return File(Encoding.UTF8.GetBytes(content.ToString()), "text/plain", fileNameTxt);
             }
 
             if (format == "docx")
             {
                 var content = html.ToString();
-                var fileNameDocx = $"ToplantiNotu_{note.Id}_{safeName}.docx";
+                var fileNameDocx = $"{(isEnglish ? "MeetingNote" : "ToplantiNotu")}_{note.Id}_{safeName}.docx";
                 var bytes = Encoding.UTF8.GetBytes(content);
                 return File(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", fileNameDocx);
             }

@@ -87,14 +87,14 @@
                 <div class="row g-3 align-items-end">
 
                     <div class="col-md-3">
-                        <label class="form-label">Firma Ara</label>
+                        <label class="form-label" data-i18n="Firma Ara">Firma Ara</label>
                         <input id="filterSearch" name="search" value="@search" class="form-control" placeholder="Firma adı yazın..." />
                     </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Durum</label>
+                    <label class="form-label" data-i18n="Durum">Durum</label>
                     <select id="filterDurum" name="durum" class="form-select">
-                        <option value="">Tümü</option>
+                        <option value="" data-i18n="Tümü">Tümü</option>
                         @foreach (var d in (ViewData["Durumlar"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
                         {
                             <option value="@d" selected="@(string.Equals(d, selectedDurum, StringComparison.OrdinalIgnoreCase))">@d</option>
@@ -103,9 +103,9 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Teknoloji</label>
+                    <label class="form-label" data-i18n="Teknoloji">Teknoloji</label>
                     <select id="filterTeknoloji" name="teknoloji" class="form-select">
-                        <option value="">Tümü</option>
+                        <option value="" data-i18n="Tümü">Tümü</option>
                         @foreach (var t in (ViewData["Teknolojiler"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
                         {
                             <option value="@t" selected="@(string.Equals(t, selectedTeknoloji, StringComparison.OrdinalIgnoreCase))">@t</option>
@@ -114,9 +114,9 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Kimden Geldi</label>
+                    <label class="form-label" data-i18n="Kimden Geldi">Kimden Geldi</label>
                     <select id="filterTalep" name="talepSahibi" class="form-select">
-                        <option value="">Tümü</option>
+                        <option value="" data-i18n="Tümü">Tümü</option>
                         @foreach (var ts in (ViewData["TalepSahipleri"] as IEnumerable<string> ?? Enumerable.Empty<string>()))
                         {
                             <option value="@ts" selected="@(string.Equals(ts, selectedTalepSahibi, StringComparison.OrdinalIgnoreCase))">@ts</option>
@@ -125,24 +125,24 @@
                 </div>
 
                     <div class="col-md-2">
-                        <label class="form-label">Excel Ay</label>
+                        <label class="form-label" data-i18n="Excel Ay">Excel Ay</label>
                         <input id="exportMonth" type="month" class="form-control" />
                     </div>
 
                     <div class="col-md-2 d-grid">
-                        <button id="btnExportMonth" type="button" class="btn btn-success">
-                            Tüm Excel
-                        </button>
+                        <a id="btnExportMonth" class="btn btn-success" href="/Musteri/ExportExcelByMonth?month=all">
+                            <span data-i18n="Tüm Excel">Tüm Excel</span>
+                        </a>
                     </div>
 
                     <div class="col-md-2 d-grid">
                         <button id="btnExportNewCustomers" type="button" class="btn btn-outline-success">
-                            Yeni Müşteriler Excel
+                            <span data-i18n="Yeni Müşteriler Excel">Yeni Müşteriler Excel</span>
                         </button>
                     </div>
 
                     <div class="col-md-2 d-grid">
-                        <button type="submit" class="btn btn-primary">Filtrele</button>
+                        <button type="submit" class="btn btn-primary" data-i18n="Filtrele">Filtrele</button>
                     </div>
 
                 </div>
@@ -159,18 +159,17 @@
                     <thead class="table-secondary">
                         <tr>
                             <th style="display:none;">ID</th>
-                            <th>Firma</th>
-                            <th>Yetkili</th>
-                            <th>Telefon</th>
-                            <th>Site URL</th>
-                            <th>Teknoloji</th>
-                            <th>Durum</th>
-                            <th>Durum Değ. Tarihi</th>
-                            <th>Kimden Geldi</th>
-                            <th>Kaynak</th>
-                            <th>Kayıt Tarihi</th>
-                            <th>Açıklama</th>
-                            <th width="100">İşlem</th>
+                            <th data-i18n="Firma">Firma</th>
+                            <th data-i18n="Yetkili">Yetkili</th>
+                            <th data-i18n="Telefon">Telefon</th>
+                            <th data-i18n="Site URL">Site URL</th>
+                            <th data-i18n="Teknoloji">Teknoloji</th>
+                            <th data-i18n="Durum">Durum</th>
+                            <th data-i18n="Durum Değişiklik Tarihi">Durum Değ. Tarihi</th>
+                            <th data-i18n="Kimden Geldi">Kimden Geldi</th>
+                            <th data-i18n="Kaynak">Kaynak</th>
+                            <th data-i18n="Kayıt Tarihi">Kayıt Tarihi</th>
+                            <th width="100" data-i18n="İşlemler">İşlem</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -197,8 +196,6 @@
                             "bg-secondary";
 
                             var kaynak = (m.Kaynak ?? "").Trim();
-                            var aciklama = m.Aciklama ?? "";
-                            var aciklamaShort = aciklama.Length > 80 ? aciklama.Substring(0, 80) + "..." : aciklama;
 
                             <tr class="@satirCls">
                                 <td style="display:none;">@m.MusteriID</td>
@@ -222,11 +219,6 @@
                                 <td>@m.TalepSahibi</td>
                                 <td>@(string.IsNullOrWhiteSpace(kaynak) ? "-" : kaynak)</td>
                                 <td>@(m.KayitTarihi.HasValue? m.KayitTarihi.Value.ToString("dd.MM.yyyy") : "-")</td>
-                                <td>
-                                    <span class="text-truncate d-inline-block" style="max-width:200px;" title="@aciklama">
-                                        @aciklamaShort
-                                    </span>
-                                </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         @if (isDokumanDurumu)
@@ -376,10 +368,6 @@
                             </select>
                         </div>
 
-                        <div class="col-12">
-                            <label class="form-label">Açıklama</label>
-                            <textarea name="Aciklama" class="form-control" rows="4"></textarea>
-                        </div>
                     </div>
                 </div>
 
@@ -452,11 +440,6 @@
                             <input type="text" id="editTalepSahibi" name="TalepSahibi" class="form-control" />
                         </div>
 
-                        <div class="col-12">
-                            <label class="form-label">Açıklama</label>
-                            <textarea id="editAciklama" name="Aciklama" class="form-control" rows="4"></textarea>
-                        </div>
-
                     </div>
 
                 </div>
@@ -511,19 +494,8 @@
                 $('#exportMonth').val(`${now.getFullYear()}-${mm}`);
             }
 
-            $('#btnExportMonth').on('click', function () {
-                const month = String($('#exportMonth').val() ?? '').trim();
-                if (!month) {
-                    alert('Lütfen bir ay seçin.');
-                    return;
-                }
-
-                const url = `/Musteri/ExportExcelByMonth?month=${encodeURIComponent(month)}`;
-                window.location.href = url;
-            });
-
             $('#btnExportNewCustomers').on('click', function () {
-                // Ay seçiminden bağımsız; her zaman bu (güncel) ayın yeni müşterilerini indirir
+                // Ay seçiminden bağımsız; her zaman son ayın yeni müşterilerini indirir
                 window.location.href = '/Musteri/ExportNewCustomersExcelByMonth';
             });
 
@@ -571,7 +543,6 @@
                         $('#editTeknoloji').val(m.teknoloji ?? '');
                         $('#editDurum').val(m.durum ?? '');
                         $('#editTalepSahibi').val(m.talepSahibi ?? '');
-                        $('#editAciklama').val(m.aciklama ?? '');
 
                         $('#editMusteriModal').modal('show');
                     })

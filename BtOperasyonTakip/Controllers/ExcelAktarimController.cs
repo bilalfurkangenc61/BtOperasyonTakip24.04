@@ -96,7 +96,7 @@ public sealed class ExcelAktarimController : Controller
         }
         catch (Exception ex)
         {
-            TempData["ExcelAktarimError"] = "Excel okunamadı: " + ex.Message;
+            TempData["ExcelAktarimError"] = $"Excel okunamadı: {ex.Message}";
             return RedirectToAction(nameof(Index));
         }
 

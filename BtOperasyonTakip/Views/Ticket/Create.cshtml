@@ -134,20 +134,20 @@
 <div class="container py-3 ticket-create-shell">
     <div class="ticket-create-hero mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
         <div>
-            <h2 class="mb-1">🆕 Yeni Ticket Oluştur</h2>
-            <div class="hero-subtext">Müşteri, ödeme ve teknik bilgileri tek form üzerinden eksiksiz girin.</div>
+            <h2 class="mb-1"><span aria-hidden="true">🆕</span> <span data-i18n="Yeni Ticket Oluştur">Yeni Ticket Oluştur</span></h2>
+            <div class="hero-subtext" data-i18n="Müşteri, ödeme ve teknik bilgileri tek form üzerinden eksiksiz girin.">Müşteri, ödeme ve teknik bilgileri tek form üzerinden eksiksiz girin.</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <span class="ticket-create-chip">Süreç başlangıcı: Operasyon 1</span>
-            <span class="ticket-create-chip">Müşteri tipi zorunlu</span>
+            <span class="ticket-create-chip" data-i18n="Süreç başlangıcı: Operasyon 1">Süreç başlangıcı: Operasyon 1</span>
+            <span class="ticket-create-chip" data-i18n="Müşteri tipi zorunlu">Müşteri tipi zorunlu</span>
         </div>
     </div>
 
     <div class="card ticket-create-card">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-                <div class="fw-semibold text-primary">Ticket Bilgileri</div>
-                <div class="small text-muted">Zorunlu alanları doldurup kaydı oluşturun.</div>
+                <div class="fw-semibold text-primary" data-i18n="Ticket Bilgileri">Ticket Bilgileri</div>
+                <div class="small text-muted" data-i18n="Zorunlu alanları doldurup kaydı oluşturun.">Zorunlu alanları doldurup kaydı oluşturun.</div>
             </div>
         </div>
         <div class="card-body">
@@ -158,11 +158,11 @@
                 <div class="row g-4">
                     <div class="col-lg-7">
                         <div class="section-panel">
-                            <div class="section-panel-title">Genel Bilgiler</div>
+                            <div class="section-panel-title" data-i18n="Genel Bilgiler">Genel Bilgiler</div>
                             <div class="row">
                     <div class="col-md-12 mb-3">
                         <label asp-for="FirmaAdi" class="form-label fw-bold">
-                            🏢 Firma Adı <span class="text-danger">*</span>
+                            <span aria-hidden="true">🏢</span> <span data-i18n="Firma Adı">Firma Adı</span> <span class="text-danger">*</span>
                         </label>
                         <input asp-for="FirmaAdi" class="form-control" placeholder="Firma adı" required />
                         <span asp-validation-for="FirmaAdi" class="text-danger"></span>
@@ -171,7 +171,7 @@
 
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label fw-bold">Müşteri Ne Kullanacak? <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold" data-i18n="Müşteri Ne Kullanacak?">Müşteri Ne Kullanacak? <span class="text-danger">*</span></label>
                         <div class="check-tile-wrap">
                         <div class="check-tile">
                             <input class="form-check-input" type="checkbox" name="OdemeTurleri" value="3D" id="odeme3d" checked="@selectedOdemeTurleri.Contains("3D")">
@@ -191,9 +191,9 @@
 
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label fw-bold">Web Sitesi Kim Tarafından Yazıldı? <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold" data-i18n="Web Sitesi Kim Tarafından Yazıldı?">Web Sitesi Kim Tarafından Yazıldı? <span class="text-danger">*</span></label>
                         <select class="form-select" name="WebSitesiTipi" required>
-                            <option value="">Seçiniz</option>
+                            <option value="" data-i18n="Seçiniz">Seçiniz</option>
                             <option value="Kendi Yazdı" selected="@(string.Equals(selectedWebSitesiTipi, "Kendi Yazdı", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Kendi Yazdı</option>
                             <option value="Hizmet Aldığı Firma" selected="@(string.Equals(selectedWebSitesiTipi, "Hizmet Aldığı Firma", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Hizmet Aldığı Firma</option>
                         </select>
@@ -202,7 +202,7 @@
 
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label fw-bold">Hangi Ödeme Yöntemleri Kullanılacak? <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold" data-i18n="Hangi Ödeme Yöntemleri Kullanılacak?">Hangi Ödeme Yöntemleri Kullanılacak? <span class="text-danger">*</span></label>
                         <div class="check-tile-wrap">
                         <div class="check-tile">
                             <input class="form-check-input" type="checkbox" name="OdemeYontemleri" value="Normal Çekim" id="odemeNormal" checked="@selectedOdemeYontemleri.Contains("Normal Çekim")">
@@ -219,7 +219,7 @@
                 <div class="row">
                     <div class="col-md-12 mb-3">
                         <label asp-for="MusteriWebSitesi" class="form-label fw-bold">
-                            🌐 Müşteri Web Sitesi <span class="text-danger">*</span>
+                            <span aria-hidden="true">🌐</span> <span data-i18n="Müşteri Web Sitesi">Müşteri Web Sitesi</span> <span class="text-danger">*</span>
                         </label>
                         <input asp-for="MusteriWebSitesi" class="form-control" placeholder="https://example.com" required />
                         <span asp-validation-for="MusteriWebSitesi" class="text-danger"></span>
@@ -229,14 +229,14 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label asp-for="YazilimciAdi" class="form-label fw-bold">
-                            👤 Yazılımcı Adı <span class="text-danger">*</span>
+                            <span aria-hidden="true">👤</span> <span data-i18n="Yazılımcı Adı">Yazılımcı Adı</span> <span class="text-danger">*</span>
                         </label>
                         <input asp-for="YazilimciAdi" class="form-control" placeholder="Adı" required />
                         <span asp-validation-for="YazilimciAdi" class="text-danger"></span>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label asp-for="YazilimciSoyadi" class="form-label fw-bold">
-                            👤 Yazılımcı Soyadı <span class="text-danger">*</span>
+                            <span aria-hidden="true">👤</span> <span data-i18n="Yazılımcı Soyadı">Yazılımcı Soyadı</span> <span class="text-danger">*</span>
                         </label>
                         <input asp-for="YazilimciSoyadi" class="form-control" placeholder="Soyadı" required />
                         <span asp-validation-for="YazilimciSoyadi" class="text-danger"></span>
@@ -246,14 +246,14 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label asp-for="Mail" class="form-label fw-bold">
-                            📧 Mail Adresi <span class="text-danger">*</span>
+                            <span aria-hidden="true">📧</span> <span data-i18n="Mail Adresi">Mail Adresi</span> <span class="text-danger">*</span>
                         </label>
                         <input asp-for="Mail" type="email" class="form-control" placeholder="ornek@mail.com" required />
                         <span asp-validation-for="Mail" class="text-danger"></span>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label asp-for="IrtibatNumarasi" class="form-label fw-bold">
-                            📞 İrtibat Numarası <span class="text-danger">*</span>
+                            <span aria-hidden="true">📞</span> <span data-i18n="İrtibat Numarası">İrtibat Numarası</span> <span class="text-danger">*</span>
                         </label>
                         <input asp-for="IrtibatNumarasi" class="form-control" placeholder="+90 5XX XXX XXXX" required />
                         <span asp-validation-for="IrtibatNumarasi" class="text-danger"></span>
@@ -265,26 +265,26 @@
 
                     <div class="col-lg-5">
                         <div class="section-panel h-100">
-                            <div class="section-panel-title">Süreç Özeti</div>
-                            <div class="small text-muted mb-3">Kayıt sonrası ticket doğrudan Operasyon 1 onay adımına düşer. Gerekli alanları eksiksiz doldurmanız süreci hızlandırır.</div>
+                            <div class="section-panel-title" data-i18n="Süreç Özeti">Süreç Özeti</div>
+                            <div class="small text-muted mb-3" data-i18n="Kayıt sonrası ticket doğrudan Operasyon 1 onay adımına düşer. Gerekli alanları eksiksiz doldurmanız süreci hızlandırır.">Kayıt sonrası ticket doğrudan Operasyon 1 onay adımına düşer. Gerekli alanları eksiksiz doldurmanız süreci hızlandırır.</div>
 
                             <div class="section-panel mb-3">
-                                <div class="fw-semibold text-primary mb-2">Dikkat Edilecekler</div>
+                                <div class="fw-semibold text-primary mb-2" data-i18n="Dikkat Edilecekler">Dikkat Edilecekler</div>
                                 <ul class="mb-0 ps-3 small text-muted">
-                                    <li>Aynı firma, site veya mail için açık ticket varsa kayıt engellenir.</li>
-                                    <li>Firma, web sitesi ve iletişim bilgileri eksiksiz girilmelidir.</li>
-                                    <li>Ödeme ve web sitesi seçimleri doğru işaretlenmelidir.</li>
+                                    <li data-i18n="Aynı firma, site veya mail için açık ticket varsa kayıt engellenir.">Aynı firma, site veya mail için açık ticket varsa kayıt engellenir.</li>
+                                    <li data-i18n="Firma, web sitesi ve iletişim bilgileri eksiksiz girilmelidir.">Firma, web sitesi ve iletişim bilgileri eksiksiz girilmelidir.</li>
+                                    <li data-i18n="Ödeme ve web sitesi seçimleri doğru işaretlenmelidir.">Ödeme ve web sitesi seçimleri doğru işaretlenmelidir.</li>
                                 </ul>
                             </div>
 
                             <div class="section-panel">
-                                <div class="fw-semibold text-primary mb-2">Aksiyonlar</div>
+                                <div class="fw-semibold text-primary mb-2" data-i18n="Aksiyonlar">Aksiyonlar</div>
                                 <div class="d-grid gap-2">
                                     <button type="button" class="btn btn-outline-primary" onclick="window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });">
-                                        <i class="bi bi-arrow-down-circle"></i> Aşağıdaki Gönder Butonuna Git
+                                        <i class="bi bi-arrow-down-circle"></i> <span data-i18n="Aşağıdaki Gönder Butonuna Git">Aşağıdaki Gönder Butonuna Git</span>
                                     </button>
                                     <a asp-action="Index" class="btn btn-outline-secondary">
-                                        <i class="bi bi-arrow-left"></i> Listeye Dön
+                                        <i class="bi bi-arrow-left"></i> <span data-i18n="Listeye Dön">Listeye Dön</span>
                                     </a>
                                 </div>
                             </div>
@@ -294,10 +294,10 @@
 
                 <div class="action-bar d-flex flex-column flex-md-row gap-2 justify-content-end">
                     <a asp-action="Index" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left"></i> Geri
+                        <i class="bi bi-arrow-left"></i> <span data-i18n="Geri">Geri</span>
                     </a>
                     <button type="submit" class="btn btn-primary btn-lg px-4">
-                        <i class="bi bi-send-check"></i> Ticket Gönder
+                        <i class="bi bi-send-check"></i> <span data-i18n="Ticket Gönder">Ticket Gönder</span>
                     </button>
                 </div>
             </form>
