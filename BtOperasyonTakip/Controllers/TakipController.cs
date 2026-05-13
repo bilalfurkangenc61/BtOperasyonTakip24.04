@@ -279,6 +279,39 @@ namespace BtOperasyonTakip.Controllers
             };
         }
 
+        private static bool IsLegacyDetailCandidate(
+            Detay detay,
+            IReadOnlyCollection<JiraTask> tasks,
+            IReadOnlyDictionary<int, IReadOnlyList<int>> taskMusteriIdsByTaskId)
+        {
+            var ekleyen = NormalizeLookupText(detay.Kekleyen);
+            if (ekleyen == string.Empty || ekleyen == "sistem")
+            {
+                return false;
+            }
+
+            var gorusulen = NormalizeLookupText(detay.Gorusulen);
+            if (gorusulen == "iş takip yorumu")
+            {
+                return false;
+            }
+
+            return !tasks.Any(task =>
+            {
+                if (!taskMusteriIdsByTaskId.TryGetValue(task.Id, out var musteriIds) || !musteriIds.Contains(detay.MusteriID))
+                {
+                    return false;
+                }
+
+                if (gorusulen == string.Empty)
+                {
+                    return true;
+                }
+
+                return NormalizeLookupText(task.TalepKonusu) == gorusulen;
+            });
+        }
+
         private void AddYorumVeMusteriDetay(JiraTask task, string yorum, string ekleyen)
         {
             var now = DateTime.Now;
@@ -406,6 +439,7 @@ namespace BtOperasyonTakip.Controllers
                 .ToList();
 
             var legacyTasks = selectedMonthDetaylar
+                .Where(detay => IsLegacyDetailCandidate(detay, tasks, taskMusteriIdsByTaskId))
                 .Select(detay =>
                 {
                     musteriDurumById.TryGetValue(detay.MusteriID, out var legacyDurum);
