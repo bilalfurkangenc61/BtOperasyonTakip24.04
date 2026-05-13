@@ -40,6 +40,8 @@
     var selectedAy = (ViewBag.SelectedAy as string) ?? DateTime.Now.ToString("yyyy-MM");
     var selectedAyLabel = (ViewBag.SelectedAyLabel as string) ?? DateTime.Now.ToString("MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"));
     var availableAylar = (ViewBag.AvailableAylar as IEnumerable<DateTime> ?? Enumerable.Empty<DateTime>()).ToList();
+    var taskLatestDetaylar = (ViewBag.TaskLatestDetaylar as IDictionary<int, BtOperasyonTakip.Models.Detay?>) ?? new Dictionary<int, BtOperasyonTakip.Models.Detay?>();
+    var taskMusteriDurumlari = (ViewBag.TaskMusteriDurumlari as IDictionary<int, string>) ?? new Dictionary<int, string>();
 
     var q = Model?.Q ?? "";
     var currentPage = Model?.Page ?? 1;
@@ -1049,6 +1051,8 @@
             <div class="dropzone mt-2" data-status="@durum">
                 @foreach (var t in tasksForDurum)
                 {
+                    var sonDetay = taskLatestDetaylar.TryGetValue(t.Id, out var latestDetay) ? latestDetay : null;
+                    var detayDurumu = taskMusteriDurumlari.TryGetValue(t.Id, out var mevcutDetayDurumu) ? mevcutDetayDurumu : string.Empty;
                     <div class="card draggable task-card @(Model.SelectedTaskId == t.Id ? "task-selected" : "")" draggable="true" data-id="@t.Id" style="border-left-color:@statusPalette.Accent;">
                         <div class="card-body">
                             <div class="task-head">
@@ -1075,6 +1079,14 @@
                             <div class="task-meta-row">
                                 <span class="task-meta-label">Oluşturma</span>
                                 <span class="task-meta-value">@t.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</span>
+                            </div>
+                            <div class="task-meta-row">
+                                <span class="task-meta-label">Son Detay</span>
+                                <span class="task-meta-value">@(sonDetay == null ? "-" : sonDetay.Tarih.ToString("dd.MM.yyyy HH:mm"))</span>
+                            </div>
+                            <div class="task-meta-row">
+                                <span class="task-meta-label">Detay Durumu</span>
+                                <span class="task-meta-value">@(string.IsNullOrWhiteSpace(detayDurumu) ? "-" : detayDurumu)</span>
                             </div>
 
                             <div class="small text-muted d-flex align-items-center gap-2 mt-2 task-status-row">

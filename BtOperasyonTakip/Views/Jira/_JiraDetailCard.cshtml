@@ -1,6 +1,10 @@
 @model BtOperasyonTakip.Models.JiraTask
 @{
     var kullaniciList = ViewBag.KullaniciSecenekleri as List<string> ?? new List<string>();
+    var taskLatestDetaylar = ViewBag.TaskLatestDetaylar as IDictionary<int, BtOperasyonTakip.Models.Detay?> ?? new Dictionary<int, BtOperasyonTakip.Models.Detay?>();
+    var taskMusteriDurumlari = ViewBag.TaskMusteriDurumlari as IDictionary<int, string> ?? new Dictionary<int, string>();
+    var sonDetay = taskLatestDetaylar.TryGetValue(Model.Id, out var latestDetay) ? latestDetay : null;
+    var detayDurumu = taskMusteriDurumlari.TryGetValue(Model.Id, out var mevcutDetayDurumu) ? mevcutDetayDurumu : string.Empty;
 
     static (string Background, string Border, string Text) GetStatusPalette(string durum)
     {
@@ -527,7 +531,7 @@
                 <div class="jira-section">
                     <div class="jira-section-head">
                         <div class="jira-section-title">Detaylar</div>
-                        <span class="jira-count-badge">4</span>
+                        <span class="jira-count-badge">6</span>
                     </div>
                     <div class="jira-properties">
                         <div class="jira-detail-highlight">
@@ -554,6 +558,16 @@
                             <div class="jira-detail-tile">
                                 <div class="jira-detail-tile-label">Oluşturma</div>
                                 <div class="jira-detail-tile-value">@Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
+                            </div>
+
+                            <div class="jira-detail-tile">
+                                <div class="jira-detail-tile-label">Son Detay</div>
+                                <div class="jira-detail-tile-value">@(sonDetay == null ? "-" : sonDetay.Tarih.ToString("dd.MM.yyyy HH:mm"))</div>
+                            </div>
+
+                            <div class="jira-detail-tile">
+                                <div class="jira-detail-tile-label">Detay Durumu</div>
+                                <div class="jira-detail-tile-value">@(string.IsNullOrWhiteSpace(detayDurumu) ? "-" : detayDurumu)</div>
                             </div>
                         </div>
                     </div>
