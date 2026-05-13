@@ -20,6 +20,7 @@ namespace BtOperasyonTakip.Controllers
 
         private static readonly string[] AllowedTalepTurleri = ["Geliştirme", "Eğitim", "Entegrasyon", "Hata Çözüm"];
         private static readonly string[] ExcelDisiTalepTurleri = ["Geliştirme", "Eğitim"];
+        private const string LegacyTalepTuru = "Detay Kaydı";
         private const int DefaultPageSize = 10;
         private const int MaxPageSize = 100;
 
@@ -118,7 +119,7 @@ namespace BtOperasyonTakip.Controllers
             return new DateTime(now.Year, now.Month, 1);
         }
 
-        private List<DateTime> GetAvailableMonths(DateTime selectedMonth, IEnumerable<Detay> latestDetaylar)
+        private List<DateTime> GetAvailableMonths(DateTime selectedMonth)
         {
             var taskMonths = _context.JiraTasks
                 .AsNoTracking()
@@ -132,8 +133,11 @@ namespace BtOperasyonTakip.Controllers
                 .ToList()
                 .Select(x => new DateTime(x.Year, x.Month, 1));
 
-            var detayMonths = (latestDetaylar ?? Enumerable.Empty<Detay>())
-                .Select(x => new DateTime(x.Tarih.Year, x.Tarih.Month, 1));
+            var detayMonths = _context.Detaylar
+                .AsNoTracking()
+                .Select(x => x.Tarih)
+                .ToList()
+                .Select(x => new DateTime(x.Year, x.Month, 1));
 
             var months = taskMonths
                 .Concat(commentMonths)
@@ -155,24 +159,66 @@ namespace BtOperasyonTakip.Controllers
             return months;
         }
 
+        private static string NormalizeLookupText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? string.Empty
+                : value.Trim().ToLowerInvariant();
+        }
+
+        private static IReadOnlyList<int> GetTaskMusteriIds(
+            JiraTask task,
+            IReadOnlyDictionary<string, List<int>> musteriIdsByFirma)
+        {
+            if (task.MusteriID.HasValue && task.MusteriID.Value > 0)
+            {
+                return [task.MusteriID.Value];
+            }
+
+            var firmaKey = NormalizeLookupText(task.MusteriAdi);
+            if (firmaKey != string.Empty && musteriIdsByFirma.TryGetValue(firmaKey, out var musteriIds))
+            {
+                return musteriIds;
+            }
+
+            return [];
+        }
+
+        private static Detay? GetLatestDetayForTask(
+            IEnumerable<int> taskMusteriIds,
+            IReadOnlyDictionary<int, Detay> detayByMusteri)
+        {
+            return taskMusteriIds
+                .Where(detayByMusteri.ContainsKey)
+                .Select(musteriId => detayByMusteri[musteriId])
+                .OrderByDescending(x => x.Tarih)
+                .ThenByDescending(x => x.DetayID)
+                .FirstOrDefault();
+        }
+
         private static bool IsTaskInSelectedMonth(
             JiraTask task,
             DateTime monthStart,
             DateTime nextMonthStart,
-            IReadOnlyDictionary<int, Detay> latestDetailByMusteri)
+            IReadOnlyCollection<int> musteriIdsWithDetayInMonth,
+            IReadOnlyCollection<int> taskMusteriIds)
         {
-            if (task.MusteriID.HasValue && latestDetailByMusteri.TryGetValue(task.MusteriID.Value, out var latestDetail))
+            if (taskMusteriIds.Any(musteriIdsWithDetayInMonth.Contains))
             {
-                return latestDetail.Tarih >= monthStart && latestDetail.Tarih < nextMonthStart;
+                return true;
             }
 
             return (task.OlusturmaTarihi >= monthStart && task.OlusturmaTarihi < nextMonthStart) ||
                    (task.Yorumlar?.Any(y => y.Tarih >= monthStart && y.Tarih < nextMonthStart) ?? false);
         }
 
-        private static DateTime GetTaskOrderDate(JiraTask task, IReadOnlyDictionary<int, Detay> latestDetailByMusteri)
+        private static DateTime GetTaskOrderDate(
+            JiraTask task,
+            IReadOnlyDictionary<int, Detay> latestDetailByMusteri,
+            IReadOnlyCollection<int> taskMusteriIds)
         {
-            if (task.MusteriID.HasValue && latestDetailByMusteri.TryGetValue(task.MusteriID.Value, out var latestDetail))
+            var latestDetail = GetLatestDetayForTask(taskMusteriIds, latestDetailByMusteri);
+            if (latestDetail != null)
             {
                 return latestDetail.Tarih;
             }
@@ -182,6 +228,55 @@ namespace BtOperasyonTakip.Controllers
                 .Max();
 
             return latestCommentDate ?? task.OlusturmaTarihi;
+        }
+
+        private static bool MatchesTaskSearch(JiraTask task, string searchText, string? extraText = null)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                return true;
+            }
+
+            var qq = searchText.Trim().ToLowerInvariant();
+            return (task.MusteriAdi ?? string.Empty).ToLowerInvariant().Contains(qq) ||
+                   (task.TalepKonusu ?? string.Empty).ToLowerInvariant().Contains(qq) ||
+                   (task.TalepAcan ?? string.Empty).ToLowerInvariant().Contains(qq) ||
+                   (task.TakipEden ?? string.Empty).ToLowerInvariant().Contains(qq) ||
+                   (task.Durum ?? string.Empty).ToLowerInvariant().Contains(qq) ||
+                   (task.TalepTuru ?? string.Empty).ToLowerInvariant().Contains(qq) ||
+                   (!string.IsNullOrWhiteSpace(extraText) && extraText.ToLowerInvariant().Contains(qq));
+        }
+
+        private static bool MatchesTaskKisi(JiraTask task, string kisi)
+        {
+            if (string.IsNullOrWhiteSpace(kisi))
+            {
+                return true;
+            }
+
+            return string.Equals((task.TakipEden ?? string.Empty).Trim(), kisi.Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static JiraTask CreateLegacyTask(Detay detay, string? musteriAdi, string? musteriDurumu)
+        {
+            var konu = string.IsNullOrWhiteSpace(detay.Gorusulen) ? LegacyTalepTuru : detay.Gorusulen.Trim();
+            var kisi = (detay.Kekleyen ?? string.Empty).Trim();
+            var durum = (musteriDurumu ?? string.Empty).Trim();
+
+            return new JiraTask
+            {
+                Id = -detay.DetayID,
+                MusteriID = detay.MusteriID,
+                MusteriAdi = (musteriAdi ?? string.Empty).Trim(),
+                JiraId = string.Empty,
+                TalepKonusu = konu,
+                TalepTuru = LegacyTalepTuru,
+                TalepAcan = string.IsNullOrWhiteSpace(kisi) ? "-" : kisi,
+                Durum = string.IsNullOrWhiteSpace(durum) ? "Aktif" : durum,
+                TakipEden = kisi,
+                OlusturmaTarihi = detay.Tarih,
+                Yorumlar = new List<JiraYorum>()
+            };
         }
 
         private void AddYorumVeMusteriDetay(JiraTask task, string yorum, string ekleyen)
@@ -218,6 +313,25 @@ namespace BtOperasyonTakip.Controllers
             pageSize = pageSize < 1 ? DefaultPageSize : pageSize;
             pageSize = pageSize > MaxPageSize ? MaxPageSize : pageSize;
 
+            var selectedMonth = ResolveSelectedMonth(ay);
+            var selectedMonthValue = selectedMonth.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+            var selectedMonthLabel = selectedMonth.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("tr-TR"));
+            var monthStart = selectedMonth;
+            var nextMonthStart = selectedMonth.AddMonths(1);
+
+            var musteriList = _context.Musteriler
+                .AsNoTracking()
+                .Where(m => !string.IsNullOrWhiteSpace(m.Firma))
+                .OrderBy(m => m.Firma)
+                .ToList();
+
+            var musteriIdsByFirma = musteriList
+                .GroupBy(m => NormalizeLookupText(m.Firma))
+                .Where(g => g.Key != string.Empty)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.MusteriID).Distinct().ToList());
+
             var latestDetailByMusteri = _context.Detaylar
                 .AsNoTracking()
                 .Where(x => x.MusteriID > 0)
@@ -227,16 +341,24 @@ namespace BtOperasyonTakip.Controllers
                 .GroupBy(x => x.MusteriID)
                 .ToDictionary(x => x.Key, x => x.First());
 
+            var selectedMonthDetaylar = _context.Detaylar
+                .AsNoTracking()
+                .Where(x => x.MusteriID > 0 && x.Tarih >= monthStart && x.Tarih < nextMonthStart)
+                .OrderByDescending(x => x.Tarih)
+                .ThenByDescending(x => x.DetayID)
+                .ToList();
+
+            var selectedMonthLatestDetailByMusteri = selectedMonthDetaylar
+                .GroupBy(x => x.MusteriID)
+                .ToDictionary(x => x.Key, x => x.First());
+
+            var musteriIdsWithDetayInMonth = selectedMonthLatestDetailByMusteri.Keys.ToHashSet();
+
             var musteriDurumById = _context.Musteriler
                 .AsNoTracking()
                 .ToDictionary(x => x.MusteriID, x => (x.Durum ?? string.Empty).Trim());
 
-            var selectedMonth = ResolveSelectedMonth(ay);
-            var selectedMonthValue = selectedMonth.ToString("yyyy-MM", CultureInfo.InvariantCulture);
-            var selectedMonthLabel = selectedMonth.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("tr-TR"));
-            var monthStart = selectedMonth;
-            var nextMonthStart = selectedMonth.AddMonths(1);
-            var availableMonths = GetAvailableMonths(selectedMonth, latestDetailByMusteri.Values);
+            var availableMonths = GetAvailableMonths(selectedMonth);
 
             var anaDurumlar = new[] { "Beklemede", "Aktif", "Tamamlandı" };
             var ekstraDurumlar = Request.Query["ekstraDurumlar"].ToArray();
@@ -251,45 +373,67 @@ namespace BtOperasyonTakip.Controllers
             var operasyonKullaniciList = GetOperasyonKullaniciSecenekleri();
             kisi = (kisi ?? string.Empty).Trim();
 
-            var musteriList = _context.Musteriler
-                .AsNoTracking()
-                .Where(m => !string.IsNullOrWhiteSpace(m.Firma))
-                .OrderBy(m => m.Firma)
-                .ToList();
-
             var query = _context.JiraTasks
                 .AsNoTracking()
                 .Include(x => x.Yorumlar)
                 .AsQueryable();
 
             q = (q ?? "").Trim();
+            var tasks = query.ToList();
+
             if (!string.IsNullOrWhiteSpace(q))
             {
-                var qq = q.ToLowerInvariant();
-                query = query.Where(t =>
-                    (t.MusteriAdi ?? "").ToLower().Contains(qq) ||
-                    (t.TalepKonusu ?? "").ToLower().Contains(qq) ||
-                    (t.TalepAcan ?? "").ToLower().Contains(qq) ||
-                    (t.TakipEden ?? "").ToLower().Contains(qq) ||
-                    (t.Durum ?? "").ToLower().Contains(qq));
+                tasks = tasks
+                    .Where(t => MatchesTaskSearch(t, q))
+                    .ToList();
             }
 
             if (!string.IsNullOrWhiteSpace(kisi))
             {
-                var selectedKisi = kisi.ToLowerInvariant();
-                query = query.Where(t => (t.TakipEden ?? "").ToLower() == selectedKisi);
+                tasks = tasks
+                    .Where(t => MatchesTaskKisi(t, kisi))
+                    .ToList();
             }
 
-            var filteredTasks = query
-                .ToList()
-                .Where(t => IsTaskInSelectedMonth(t, monthStart, nextMonthStart, latestDetailByMusteri))
-                .OrderByDescending(t => GetTaskOrderDate(t, latestDetailByMusteri))
+            var taskMusteriIdsByTaskId = tasks.ToDictionary(
+                t => t.Id,
+                t => GetTaskMusteriIds(t, musteriIdsByFirma));
+
+            var filteredTasks = tasks
+                .Where(t => IsTaskInSelectedMonth(t, monthStart, nextMonthStart, musteriIdsWithDetayInMonth, taskMusteriIdsByTaskId[t.Id]))
+                .OrderByDescending(t => GetTaskOrderDate(t, latestDetailByMusteri, taskMusteriIdsByTaskId[t.Id]))
                 .ThenByDescending(t => t.OlusturmaTarihi)
                 .ToList();
 
-            var totalCount = filteredTasks.Count;
+            var legacyTasks = selectedMonthDetaylar
+                .Select(detay =>
+                {
+                    musteriDurumById.TryGetValue(detay.MusteriID, out var legacyDurum);
+                    var legacyMusteriAdi = musteriList.FirstOrDefault(x => x.MusteriID == detay.MusteriID)?.Firma;
+                    return new
+                    {
+                        Detay = detay,
+                        Task = CreateLegacyTask(detay, legacyMusteriAdi, legacyDurum)
+                    };
+                })
+                .Where(x => MatchesTaskSearch(x.Task, q, x.Detay.Aciklama) && MatchesTaskKisi(x.Task, kisi))
+                .OrderByDescending(x => x.Detay.Tarih)
+                .ThenByDescending(x => x.Detay.DetayID)
+                .ToList();
 
-            var paged = filteredTasks
+            var legacyTaskIds = legacyTasks
+                .Select(x => x.Task.Id)
+                .ToHashSet();
+
+            var combinedTasks = filteredTasks
+                .Concat(legacyTasks.Select(x => x.Task))
+                .OrderByDescending(t => t.OlusturmaTarihi)
+                .ThenByDescending(t => t.Id)
+                .ToList();
+
+            var totalCount = combinedTasks.Count;
+
+            var paged = combinedTasks
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -353,25 +497,36 @@ namespace BtOperasyonTakip.Controllers
                 taskIdsForView.Add(model.SelectedTask.Id);
             }
 
+            var legacyDetayByTaskId = legacyTasks.ToDictionary(x => x.Task.Id, x => x.Detay);
+
             ViewBag.TaskLatestDetaylar = taskIdsForView.ToDictionary(
                 taskId => taskId,
                 taskId =>
                 {
-                    var task = paged.FirstOrDefault(x => x.Id == taskId) ?? model.SelectedTask;
-                    if (task?.MusteriID.HasValue == true && latestDetailByMusteri.TryGetValue(task.MusteriID.Value, out var latestDetail))
+                    if (legacyDetayByTaskId.TryGetValue(taskId, out var legacyDetay))
                     {
-                        return latestDetail;
+                        return legacyDetay;
                     }
 
-                    return null;
+                    var taskMusteriIds = taskMusteriIdsByTaskId.TryGetValue(taskId, out var ids) ? ids : [];
+                    return GetLatestDetayForTask(taskMusteriIds, selectedMonthLatestDetailByMusteri);
                 });
 
             ViewBag.TaskMusteriDurumlari = taskIdsForView.ToDictionary(
                 taskId => taskId,
                 taskId =>
                 {
-                    var task = paged.FirstOrDefault(x => x.Id == taskId) ?? model.SelectedTask;
-                    if (task?.MusteriID.HasValue == true && musteriDurumById.TryGetValue(task.MusteriID.Value, out var musteriDurum))
+                    if (legacyDetayByTaskId.TryGetValue(taskId, out var legacyDetay) && musteriDurumById.TryGetValue(legacyDetay.MusteriID, out var legacyMusteriDurum))
+                    {
+                        return legacyMusteriDurum;
+                    }
+
+                    var taskMusteriIds = taskMusteriIdsByTaskId.TryGetValue(taskId, out var ids) ? ids : [];
+                    var selectedMonthDetay = GetLatestDetayForTask(taskMusteriIds, selectedMonthLatestDetailByMusteri);
+                    var fallbackDetay = selectedMonthDetay ?? GetLatestDetayForTask(taskMusteriIds, latestDetailByMusteri);
+                    var durumMusteriId = fallbackDetay?.MusteriID ?? taskMusteriIds.FirstOrDefault();
+
+                    if (durumMusteriId > 0 && musteriDurumById.TryGetValue(durumMusteriId, out var musteriDurum))
                     {
                         return musteriDurum;
                     }
@@ -388,6 +543,7 @@ namespace BtOperasyonTakip.Controllers
             ViewBag.DurumListesi = durumListesi;
             ViewBag.AnaDurumlar = anaDurumlar;
             ViewBag.SelectedEkstraDurumlar = seciliEkstraDurumlar;
+            ViewBag.LegacyTaskIds = legacyTaskIds;
             ViewBag.PagedTasks = paged;
             return View(model);
         }
