@@ -1,0 +1,269 @@
+@model List<BtOperasyonTakip.Models.JiraTask>
+
+@{
+    ViewData["Title"] = (ViewBag.Title as string) ?? "Arşiv";
+
+    var q = (ViewBag.Q as string) ?? string.Empty;
+    var availableAylar = (ViewBag.AvailableAylar as IEnumerable<System.DateTime> ?? Enumerable.Empty<System.DateTime>()).ToList();
+    var selectedAy = (ViewBag.SelectedAy as string) ?? string.Empty;
+    var selectedDurum = (ViewBag.SelectedDurum as string) ?? string.Empty;
+
+    var archiveDateByTask = ViewBag.ArchiveDateByTask as Dictionary<int, DateTime?>;
+}
+
+<div class="container py-3">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">Arşiv - Diğer İşler</h2>
+            <div class="text-muted">Bu sayfada seçilen ay dışındaki işleri bulabilirsiniz.</div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="@Url.Action("Index", "Takip")">
+                İş Takip'e Dön
+            </a>
+
+            <a class="btn btn-success"
+               href="@Url.Action("ExportExcel", "TakipArsiv", new { q = q, ay = selectedAy, durum = selectedDurum })">
+                Excel İndir
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Ara</label>
+                    <input type="text"
+                           name="q"
+                           value="@q"
+                           class="form-control"
+                           placeholder="Müşteri, Jira No, konu, durum..." />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Durum</label>
+                    <select name="durum" class="form-select">
+                        <option value="">Tümü</option>
+
+                        @foreach (var d in (ViewBag.DurumList as List<string> ?? new List<string>()))
+                        {
+                            <option value="@d" selected="@(string.Equals(selectedDurum, d, StringComparison.OrdinalIgnoreCase))">
+                                @d
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Ay</label>
+                    <select name="ay" class="form-select">
+                        <option value="">Tümü</option>
+
+                        @foreach (var ay in availableAylar)
+                        {
+                            var ayValue = ay.ToString("yyyy-MM");
+                            var ayText = ay.ToString("MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"));
+
+                            <option value="@ayValue" selected="@(string.Equals(ayValue, selectedAy, StringComparison.OrdinalIgnoreCase))">
+                                @ayText
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-1 d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        Filtrele
+                    </button>
+                </div>
+
+                <div class="col-md-auto">
+                    <a class="btn btn-outline-secondary" href="@Url.Action("Index", "TakipArsiv")">
+                        Temizle
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kaynak</th>
+                            <th>Müşteri</th>
+                            <th>Jira No</th>
+                            <th>Talep Konusu</th>
+                            <th>Talep Türü</th>
+                            <th>Talep Açan</th>
+                            <th>Takip Eden</th>
+                            <th>Durum</th>
+                            <th>Oluşturma / Arşiv Tarihi</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @if (Model == null || Model.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="10" class="text-center text-muted py-4">
+                                    Kayıt bulunamadı.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model)
+                            {
+                                DateTime? archiveDate = null;
+
+                                if (archiveDateByTask != null &&
+                                    archiveDateByTask.TryGetValue(item.Id, out var ad))
+                                {
+                                    archiveDate = ad;
+                                }
+
+                                <tr>
+                                    <td>
+                                        @if (item.Id < 0 || string.Equals(item.TalepTuru, "Detay", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-info text-dark">Detay</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Takip</span>
+                                        }
+                                    </td>
+
+                                    <td>@item.MusteriAdi</td>
+                                    <td>@item.JiraId</td>
+                                    <td>@item.TalepKonusu</td>
+                                    <td>@item.TalepTuru</td>
+                                    <td>@item.TalepAcan</td>
+                                    <td>@item.TakipEden</td>
+                                    <td>@item.Durum</td>
+
+                                    <td>
+                                        @(archiveDate.HasValue
+                                            ? archiveDate.Value.ToString("dd.MM.yyyy HH:mm")
+                                            : item.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm"))
+                                    </td>
+
+                                    <td>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary"
+                                                onclick="openArsivDetail('@item.Id')">
+                                            Detay
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="arsivDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-md-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">İş Detayı</h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Kapat">
+                </button>
+            </div>
+
+            <div class="modal-body" id="arsivDetailBody">
+                <div class="text-center text-muted">
+                    Yükleniyor...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openArsivDetail(id) {
+            console.log("Detay tıklandı. ID:", id);
+
+            if (!id) {
+                alert("Kayıt id bulunamadı.");
+                return;
+            }
+
+            var modalElement = document.getElementById("arsivDetailModal");
+            var modalBody = document.getElementById("arsivDetailBody");
+
+            if (!modalElement) {
+                alert("Modal bulunamadı: arsivDetailModal");
+                return;
+            }
+
+            if (!modalBody) {
+                alert("Modal body bulunamadı: arsivDetailBody");
+                return;
+            }
+
+            modalBody.innerHTML = '<div class="text-center text-muted">Yükleniyor...</div>';
+
+            var url = '@Url.Action("DetailCard", "TakipArsiv")' + '?id=' + encodeURIComponent(id);
+
+            console.log("İstek atılan URL:", url);
+
+            fetch(url, {
+                method: "GET",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            })
+            .then(function (res) {
+                console.log("HTTP durum:", res.status);
+
+                if (!res.ok) {
+                    return res.text().then(function (text) {
+                        throw new Error("HTTP " + res.status + " - " + text);
+                    });
+                }
+
+                return res.text();
+            })
+            .then(function (html) {
+                modalBody.innerHTML = html;
+
+                if (typeof bootstrap === "undefined") {
+                    alert("Bootstrap JS yüklenmemiş. _Layout.cshtml içinde bootstrap.bundle.min.js eksik.");
+                    return;
+                }
+
+                var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                modal.show();
+            })
+            .catch(function (err) {
+                console.error("Detay yükleme hatası:", err);
+
+                modalBody.innerHTML =
+                    '<div class="alert alert-danger mb-0">' +
+                    '<strong>Detay yüklenemedi.</strong><br />' +
+                    err.message +
+                    '</div>';
+
+                if (typeof bootstrap !== "undefined") {
+                    var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modal.show();
+                }
+            });
+        }
+    </script>
+}

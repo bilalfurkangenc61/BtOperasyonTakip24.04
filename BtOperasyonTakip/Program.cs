@@ -9,6 +9,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+// register monthly archive background service
+builder.Services.AddHostedService<BtOperasyonTakip.Services.MonthlyArchiveService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

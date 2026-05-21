@@ -86,20 +86,34 @@ namespace BtOperasyonTakip.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var taskExists = _context.JiraTasks.Any(t => t.Id == jiraTaskId);
-            if (!taskExists)
+            var task = _context.JiraTasks.Find(jiraTaskId);
+            if (task == null)
             {
                 TempData["JiraError"] = "Görev bulunamadı.";
                 return RedirectToAction(nameof(Index));
             }
 
+            var now = DateTime.Now;
             _context.JiraYorumlar.Add(new JiraYorum
             {
                 JiraTaskId = jiraTaskId,
                 YorumMetni = yorum,
                 Ekleyen = ekleyen,
-                Tarih = DateTime.Now
+                Tarih = now
             });
+
+            // also add a Detay (customer detail) so comments written in İş Takip / Jira also appear in Detaylar
+            if (task.MusteriID.HasValue && task.MusteriID.Value > 0)
+            {
+                _context.Detaylar.Add(new Detay
+                {
+                    MusteriID = task.MusteriID.Value,
+                    Tarih = now,
+                    Gorusulen = string.IsNullOrWhiteSpace(task.TalepKonusu) ? "İş Takip Yorumu" : task.TalepKonusu.Trim(),
+                    Aciklama = yorum,
+                    Kekleyen = ekleyen
+                });
+            }
 
             _context.SaveChanges();
             TempData["JiraOk"] = "Yorum eklendi.";
@@ -121,8 +135,8 @@ namespace BtOperasyonTakip.Controllers
                     : RedirectToAction(nameof(Index));
             }
 
-            var taskExists = _context.JiraTasks.Any(t => t.Id == jiraTaskId);
-            if (!taskExists)
+            var task = _context.JiraTasks.Find(jiraTaskId);
+            if (task == null)
             {
                 TempData["JiraError"] = "Görev bulunamadı.";
                 return !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
@@ -130,13 +144,26 @@ namespace BtOperasyonTakip.Controllers
                     : RedirectToAction(nameof(Index));
             }
 
+            var now = DateTime.Now;
             _context.JiraYorumlar.Add(new JiraYorum
             {
                 JiraTaskId = jiraTaskId,
                 YorumMetni = yorum,
                 Ekleyen = ekleyen,
-                Tarih = DateTime.Now
+                Tarih = now
             });
+
+            if (task.MusteriID.HasValue && task.MusteriID.Value > 0)
+            {
+                _context.Detaylar.Add(new Detay
+                {
+                    MusteriID = task.MusteriID.Value,
+                    Tarih = now,
+                    Gorusulen = string.IsNullOrWhiteSpace(task.TalepKonusu) ? "İş Takip Yorumu" : task.TalepKonusu.Trim(),
+                    Aciklama = yorum,
+                    Kekleyen = ekleyen
+                });
+            }
 
             _context.SaveChanges();
             TempData["JiraOk"] = "Yorum eklendi.";

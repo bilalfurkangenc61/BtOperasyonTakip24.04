@@ -347,10 +347,13 @@ namespace BtOperasyonTakip.Controllers
             pageSize = pageSize > MaxPageSize ? MaxPageSize : pageSize;
 
             var selectedMonth = ResolveSelectedMonth(ay);
-            var selectedMonthValue = selectedMonth.ToString("yyyy-MM", CultureInfo.InvariantCulture);
-            var selectedMonthLabel = selectedMonth.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("tr-TR"));
-            var monthStart = selectedMonth;
-            var nextMonthStart = selectedMonth.AddMonths(1);
+
+            // Disable month filtering for the main İş Takip page — show all records.
+            // Use very wide range so month-based queries include all rows.
+            var selectedMonthValue = string.Empty;
+            var selectedMonthLabel = "Tümü";
+            var monthStart = DateTime.MinValue;
+            var nextMonthStart = DateTime.MaxValue;
 
             var musteriList = _context.Musteriler
                 .AsNoTracking()
@@ -428,6 +431,12 @@ namespace BtOperasyonTakip.Controllers
                     .ToList();
             }
 
+            // Exclude completed or archived tasks from main İş Takip view
+            tasks = tasks
+                .Where(t => !string.Equals((t.Durum ?? string.Empty).Trim(), "Tamamlandı", StringComparison.OrdinalIgnoreCase))
+                .Where(t => !string.Equals((t.Durum ?? string.Empty).Trim(), "Arşiv", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
             var taskMusteriIdsByTaskId = tasks.ToDictionary(
                 t => t.Id,
                 t => GetTaskMusteriIds(t, musteriIdsByFirma));
@@ -459,8 +468,8 @@ namespace BtOperasyonTakip.Controllers
                 .Select(x => x.Task.Id)
                 .ToHashSet();
 
+            // Do not include legacyTasks in the main view; legacy items will be shown in Arşiv
             var combinedTasks = filteredTasks
-                .Concat(legacyTasks.Select(x => x.Task))
                 .OrderByDescending(t => t.OlusturmaTarihi)
                 .ThenByDescending(t => t.Id)
                 .ToList();
@@ -728,10 +737,30 @@ namespace BtOperasyonTakip.Controllers
                 TempData["JiraError"] = "Kayıt bulunamadı.";
                 return RedirectToLocalOrIndex(returnUrl);
             }
+            var yeni = yeniDurum.Trim();
+            if (string.Equals(yeni, "Tamamlandı", StringComparison.OrdinalIgnoreCase) || string.Equals(yeni, "Arşiv", StringComparison.OrdinalIgnoreCase))
+            {
+                // Immediately archive completed tasks (model is unchanged; use special Durum value)
+                task.Durum = "Arşiv";
 
-            task.Durum = yeniDurum.Trim();
-            _context.SaveChanges();
-            TempData["JiraOk"] = "Durum güncellendi.";
+                // add a system comment to record archive timestamp
+                _context.JiraYorumlar.Add(new JiraYorum
+                {
+                    JiraTaskId = task.Id,
+                    YorumMetni = "Arşivlendi",
+                    Ekleyen = "Sistem",
+                    Tarih = DateTime.Now
+                });
+
+                _context.SaveChanges();
+                TempData["JiraOk"] = "İş arşivlendi.";
+            }
+            else
+            {
+                task.Durum = yeni;
+                _context.SaveChanges();
+                TempData["JiraOk"] = "Durum güncellendi.";
+            }
             return RedirectToLocalOrIndex(returnUrl);
         }
 
@@ -805,7 +834,22 @@ namespace BtOperasyonTakip.Controllers
                 if (task == null)
                     return Json(new { success = false, message = "Görev bulunamadı." });
 
-                task.Durum = model.YeniDurum.Trim();
+                var yeni = model.YeniDurum.Trim();
+                if (string.Equals(yeni, "Tamamlandı", StringComparison.OrdinalIgnoreCase) || string.Equals(yeni, "Arşiv", StringComparison.OrdinalIgnoreCase))
+                {
+                    task.Durum = "Arşiv";
+                    _context.JiraYorumlar.Add(new JiraYorum
+                    {
+                        JiraTaskId = task.Id,
+                        YorumMetni = "Arşivlendi",
+                        Ekleyen = "Sistem",
+                        Tarih = DateTime.Now
+                    });
+                    _context.SaveChanges();
+                    return Json(new { success = true, message = "İş arşivlendi." });
+                }
+
+                task.Durum = yeni;
                 _context.SaveChanges();
 
                 return Json(new { success = true, message = "Durum güncellendi." });
@@ -861,40 +905,72 @@ namespace BtOperasyonTakip.Controllers
         }
 
         [HttpGet]
-        public IActionResult DetailCard(int id)
+        public async Task<IActionResult> DetailCard(int id)
         {
-            var task = _context.JiraTasks
-                .Include(t => t.Yorumlar)
-                .FirstOrDefault(t => t.Id == id);
+            int? musteriId = null;
+            string musteriAdi = string.Empty;
 
-            if (task == null)
-                return Content("<div class='text-danger small'>Kayıt bulunamadı.</div>", "text/html");
-
-            Detay? latestDetail = null;
-            string musteriDurumu = string.Empty;
-
-            if (task.MusteriID.HasValue)
+            if (id < 0)
             {
-                latestDetail = _context.Detaylar
-                    .AsNoTracking()
-                    .Where(x => x.MusteriID == task.MusteriID.Value)
-                    .OrderByDescending(x => x.Tarih)
-                    .ThenByDescending(x => x.DetayID)
-                    .FirstOrDefault();
+                var detayId = Math.Abs(id);
 
-                musteriDurumu = _context.Musteriler
+                var detay = await _context.Detaylar
                     .AsNoTracking()
-                    .Where(x => x.MusteriID == task.MusteriID.Value)
-                    .Select(x => x.Durum)
-                    .FirstOrDefault() ?? string.Empty;
+                    .FirstOrDefaultAsync(x => x.DetayID == detayId);
+
+                if (detay == null)
+                    return NotFound("Detay kaydı bulunamadı.");
+
+                musteriId = detay.MusteriID;
+            }
+            else
+            {
+                var task = await _context.JiraTasks
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == id);
+
+                if (task == null)
+                    return NotFound("İş takip kaydı bulunamadı.");
+
+                musteriId = task.MusteriID;
             }
 
+            if (!musteriId.HasValue || musteriId.Value <= 0)
+                return NotFound("Müşteri bilgisi bulunamadı.");
 
-            ViewBag.KullaniciSecenekleri = GetOperasyonKullaniciSecenekleri();
-            ViewBag.TaskLatestDetaylar = new Dictionary<int, Detay?> { [task.Id] = latestDetail };
-            ViewBag.TaskMusteriDurumlari = new Dictionary<int, string> { [task.Id] = musteriDurumu.Trim() };
-            return PartialView("~/Views/Jira/_JiraDetailCard.cshtml", task);
+            var musteri = await _context.Musteriler
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MusteriID == musteriId.Value);
+
+            if (musteri != null)
+                musteriAdi = musteri.Firma ?? string.Empty;
+
+            var detaylar = await _context.Detaylar
+                .AsNoTracking()
+                .Where(x => x.MusteriID == musteriId.Value)
+                .OrderByDescending(x => x.Tarih)
+                .ThenByDescending(x => x.DetayID)
+                .ToListAsync();
+
+            var operasyonKullaniciList = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Role == AppRoles.Operasyon)
+                .Select(x => string.IsNullOrWhiteSpace(x.FullName) ? x.UserName : x.FullName!)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            ViewBag.MusteriID = musteriId.Value;
+            ViewBag.MusteriAdi = musteriAdi;
+            ViewBag.KullaniciSecenekleri = operasyonKullaniciList;
+
+            return PartialView("~/Views/Detay/_DetayListesi.cshtml", detaylar);
         }
+
+
+
 
         [HttpGet]
         public IActionResult ExportExcelGrouped()

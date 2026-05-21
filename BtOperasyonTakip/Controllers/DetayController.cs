@@ -43,6 +43,51 @@ namespace BtOperasyonTakip.Controllers
                 .ToList();
         }
 
+        // Helper to find archived JiraTasks related to a Musteri (or Detay) so we can link from Detay page to Arşiv
+        private List<Models.JiraTask> GetRelatedArchivedTasksForMusteri(int musteriId)
+        {
+            var now = DateTime.Now;
+            var currentMonthStart = new DateTime(now.Year, now.Month, 1);
+
+            var tasks = _context.JiraTasks
+                .AsNoTracking()
+                .Include(t => t.Yorumlar)
+                .Where(t => (t.MusteriID == musteriId && ((t.Durum ?? "").Trim() == "Arşiv" || (t.Durum ?? "").Trim() == "Tamamlandı"))
+                            || (t.MusteriID == musteriId && t.OlusturmaTarihi < currentMonthStart))
+                .OrderByDescending(t => t.OlusturmaTarihi)
+                .ToList();
+
+            // also include legacy Detay-derived tasks (negative Ids) related to this musteri
+            var detayDerived = _context.Detaylar
+                .AsNoTracking()
+                .Where(d => d.MusteriID == musteriId)
+                .OrderByDescending(d => d.Tarih)
+                .ToList()
+                .Where(d => !string.IsNullOrWhiteSpace(d.Kekleyen) && !string.Equals(d.Kekleyen?.Trim(), "Sistem", StringComparison.OrdinalIgnoreCase))
+                .Where(d => !string.Equals((d.Gorusulen ?? string.Empty).Trim(), "İş Takip Yorumu", StringComparison.OrdinalIgnoreCase))
+                .Select(d => new Models.JiraTask
+                {
+                    Id = -d.DetayID,
+                    MusteriID = d.MusteriID,
+                    MusteriAdi = string.Empty,
+                    JiraId = string.Empty,
+                    TalepKonusu = string.IsNullOrWhiteSpace(d.Gorusulen) ? "Detay" : d.Gorusulen,
+                    TalepTuru = "Detay",
+                    TalepAcan = d.Kekleyen,
+                    Durum = "Aktif",
+                    TakipEden = d.Kekleyen,
+                    OlusturmaTarihi = d.Tarih,
+                    Yorumlar = new List<Models.JiraYorum>()
+                })
+                .ToList();
+
+            tasks = tasks.Concat(detayDerived)
+                .OrderByDescending(t => t.OlusturmaTarihi)
+                .ToList();
+
+            return tasks;
+        }
+
         private IActionResult RedirectToLocalOr(string? returnUrl, string action, object? routeValues = null)
         {
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
