@@ -22,8 +22,22 @@ namespace BtOperasyonTakip.Controllers
         }
 
         [HttpGet]
-        public IActionResult Index(string? q, string? ay, string? durum)
+        public IActionResult Index(string? q, string? ay, string? durum, string? lang)
         {
+            // set culture if lang provided
+            if (!string.IsNullOrWhiteSpace(lang))
+            {
+                try
+                {
+                    var culture = lang.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? new CultureInfo("en-US") : new CultureInfo("tr-TR");
+                    CultureInfo.CurrentCulture = culture;
+                    CultureInfo.CurrentUICulture = culture;
+                }
+                catch
+                {
+                    // ignore invalid lang
+                }
+            }
             q = (q ?? string.Empty).Trim();
 
             var months = _context.JiraTasks
@@ -260,13 +274,24 @@ namespace BtOperasyonTakip.Controllers
 
             ViewBag.Title = "Arşiv - Diğer İşler";
             ViewBag.Q = q;
+            ViewBag.Lang = lang ?? string.Empty;
 
             return View("~/Views/Takip/Arsiv.cshtml", tasks);
         }
 
         [HttpGet]
-        public async Task<IActionResult> DetailCard(int id)
+        public async Task<IActionResult> DetailCard(int id, string? lang)
         {
+            if (!string.IsNullOrWhiteSpace(lang))
+            {
+                try
+                {
+                    var culture = lang.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? new CultureInfo("en-US") : new CultureInfo("tr-TR");
+                    CultureInfo.CurrentCulture = culture;
+                    CultureInfo.CurrentUICulture = culture;
+                }
+                catch { }
+            }
             int? musteriId = null;
             string musteriAdi = string.Empty;
 
@@ -331,8 +356,18 @@ namespace BtOperasyonTakip.Controllers
             return PartialView("~/Views/Takip/_DetailCard.cshtml", detaylar);
         }
         [HttpGet]
-        public IActionResult ExportExcel(string? q, string? ay, string? durum)
+        public IActionResult ExportExcel(string? q, string? ay, string? durum, string? lang)
         {
+            if (!string.IsNullOrWhiteSpace(lang))
+            {
+                try
+                {
+                    var culture = lang.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? new CultureInfo("en-US") : new CultureInfo("tr-TR");
+                    CultureInfo.CurrentCulture = culture;
+                    CultureInfo.CurrentUICulture = culture;
+                }
+                catch { }
+            }
             q = (q ?? string.Empty).Trim();
 
             var query = _context.JiraTasks
@@ -439,6 +474,12 @@ namespace BtOperasyonTakip.Controllers
                     : string.Empty
             }).ToList();
 
+            bool isEn = !string.IsNullOrWhiteSpace(lang) && lang.StartsWith("en", StringComparison.OrdinalIgnoreCase);
+
+            var headers = isEn
+                ? new[] { "Source", "Customer", "Jira No", "Request Subject", "Request Type", "Requested By", "Assigned To", "Status", "Created Date", "Completion/Archive Date", "Comments" }
+                : new[] { "Kaynak", "Müşteri", "Jira No", "Talep Konusu", "Talep Türü", "Talep Açan", "Takip Eden", "Durum", "Oluşturma Tarihi", "Tamamlanma/Arşiv Tarihi", "Yorumlar" };
+
             using var ms = new MemoryStream();
 
             using (var document = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook, true))
@@ -532,20 +573,6 @@ namespace BtOperasyonTakip.Controllers
 
                 var headerRow = new Row();
 
-                var headers = new[]
-                {
-                    "Kaynak",
-                    "Müşteri",
-                    "Jira No",
-                    "Talep Konusu",
-                    "Talep Türü",
-                    "Talep Açan",
-                    "Takip Eden",
-                    "Durum",
-                    "Oluşturma Tarihi",
-                    "Tamamlanma/Arşiv Tarihi",
-                    "Yorumlar"
-                };
 
                 foreach (var h in headers)
                 {
@@ -623,7 +650,9 @@ namespace BtOperasyonTakip.Controllers
 
             ms.Position = 0;
 
-            var fileName = $"Arsiv_TumAylar_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            var fileName = (!string.IsNullOrWhiteSpace(lang) && lang.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+                ? $"Archive_AllMonths_{DateTime.Now:yyyyMMdd_HHmm}.xlsx"
+                : $"Arsiv_TumAylar_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
 
             return File(
                 ms.ToArray(),

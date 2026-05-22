@@ -1,6 +1,8 @@
 ﻿using BtOperasyonTakip.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using Microsoft.AspNetCore.Localization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +11,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+// add localization services (resources path optional)
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 // register monthly archive background service
 builder.Services.AddHostedService<BtOperasyonTakip.Services.MonthlyArchiveService>();
 
@@ -50,6 +54,17 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// configure request localization (query string provider has priority)
+var supportedCultures = new[] { new CultureInfo("tr-TR"), new CultureInfo("en-US") };
+var localizationOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("tr-TR"),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures
+};
+localizationOptions.RequestCultureProviders.Insert(0, new QueryStringRequestCultureProvider { QueryStringKey = "lang", UIQueryStringKey = "lang" });
+app.UseRequestLocalization(localizationOptions);
 
 app.UseRouting();
 

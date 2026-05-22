@@ -24,7 +24,7 @@
             </a>
 
             <a class="btn btn-success"
-               href="@Url.Action("ExportExcel", "TakipArsiv", new { q = q, ay = selectedAy, durum = selectedDurum })">
+               href="@Url.Action("ExportExcel", "TakipArsiv", new { q = q, ay = selectedAy, durum = selectedDurum, lang = ViewBag.Lang })">
                 Excel İndir
             </a>
         </div>
@@ -101,9 +101,9 @@
                             <th>Talep Türü</th>
                             <th>Talep Açan</th>
                             <th>Takip Eden</th>
-                            <th>Durum</th>
+                            <th>Durum</th> 
                             <th>Oluşturma / Arşiv Tarihi</th>
-                            <th>İşlem</th>
+                          
                         </tr>
                     </thead>
 
@@ -154,13 +154,7 @@
                                             : item.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm"))
                                     </td>
 
-                                    <td>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-primary"
-                                                onclick="openArsivDetail('@item.Id')">
-                                            Detay
-                                        </button>
-                                    </td>
+                                 
                                 </tr>
                             }
                         }
@@ -218,7 +212,8 @@
 
             modalBody.innerHTML = '<div class="text-center text-muted">Yükleniyor...</div>';
 
-            var url = '@Url.Action("DetailCard", "TakipArsiv")' + '?id=' + encodeURIComponent(id);
+            var currentLang = (window.UiLocalization && window.UiLocalization.getLanguage) ? window.UiLocalization.getLanguage() : ('@(ViewBag.Lang ?? "")');
+            var url = '@Url.Action("DetailCard", "TakipArsiv")' + '?id=' + encodeURIComponent(id) + (currentLang ? '&lang=' + encodeURIComponent(currentLang) : '');
 
             console.log("İstek atılan URL:", url);
 
@@ -265,5 +260,39 @@
                 }
             });
         }
+    </script>
+    <script>
+        // ensure export links and forms include selected ui-language (from client switcher)
+        (function () {
+            try {
+                var uiLang = (window.UiLocalization && window.UiLocalization.getLanguage) ? window.UiLocalization.getLanguage() : (localStorage.getItem('ui-language') || '');
+
+                if (!uiLang) return;
+
+                // update export link
+                var exportLink = document.querySelector('a.btn-success[href*="ExportExcel"]');
+                if (exportLink) {
+                    try {
+                        var u = new URL(exportLink.href, window.location.origin);
+                        u.searchParams.set('lang', uiLang);
+                        exportLink.href = u.toString();
+                    } catch { }
+                }
+
+                // add hidden lang input to GET forms so server receives lang
+                document.querySelectorAll('form[method="get"]').forEach(function (f) {
+                    var inp = f.querySelector('input[name="lang"]');
+                    if (!inp) {
+                        inp = document.createElement('input');
+                        inp.type = 'hidden';
+                        inp.name = 'lang';
+                        f.appendChild(inp);
+                    }
+                    inp.value = uiLang;
+                });
+            } catch (e) {
+                console.error('Lang injection error', e);
+            }
+        })();
     </script>
 }
