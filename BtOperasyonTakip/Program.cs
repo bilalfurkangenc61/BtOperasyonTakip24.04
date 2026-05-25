@@ -16,6 +16,7 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
 // register monthly archive background service
 builder.Services.AddHostedService<BtOperasyonTakip.Services.MonthlyArchiveService>();
 
+
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
